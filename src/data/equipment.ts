@@ -25,7 +25,7 @@ export const gerunTemplate: EquipmentParameterGroup[] = [
   { id: 'general', title: 'Общие сведения', parameters: [
     { id: 'name', label: 'Производитель', format: 'text', value: 'Gerun' },
     { id: 'model', label: 'Модель', format: 'text', value: '1320' },
-    { id: 'profiles', label: 'Доступные профили картона', format: 'text' },
+    { id: 'profiles', label: 'Доступные профили картона', format: 'text', value: profiles.join(' · ') },
   ] },
   { id: 'feed', title: 'Формат подачи', parameters: [
     { id: 'feeding', label: 'Подача заготовки', format: 'text', value: 'Ручная' },
