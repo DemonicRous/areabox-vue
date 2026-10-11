@@ -21,6 +21,7 @@ const previewLeft = computed(() => current.value ? technology(current.value.line
 const previewTop = computed(() => current.value ? Math.max(technology(current.value.line.id) === 'plotter' ? 20 : 0, ...[current.value.line, findMachine(current.value.selection.printing)].filter(Boolean).map(line => Number(parameter(line!, 'marginTop') ?? 0))) : 0)
 const labels = { inline: 'Инлайн', flatbed: 'Плоская высечка', rotary: 'Ротационная высечка', plotter: 'Плоттер' }
 function choose(route: ProductionRoute) {
+  if (selection.printing === route.selection.printing && selection.cutting === route.selection.cutting && selection.finishing === route.selection.finishing) return
   Object.assign(selection, route.selection)
   confirmedProduction.value = null
 }
@@ -28,11 +29,11 @@ watch(draft, () => {
   confirmedProduction.value = null
   if (!current.value || current.value.blocked.length) Object.assign(selection, { printing: '', cutting: '', finishing: '' })
   else Object.assign(selection, current.value.selection)
-}, { deep: true, immediate: true })
+}, { deep: true })
 function confirm() {
   const route = current.value
   if (!route || route.blocked.length) return
-  confirmedProduction.value = { names: route.names, geometry: route.geometry, review: route.review }
+  if (!confirmedProduction.value) confirmedProduction.value = { names: route.names, geometry: route.geometry, review: route.review }
   if (route.geometry) emit('drawing')
 }
 </script>

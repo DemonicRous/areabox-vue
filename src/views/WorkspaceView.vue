@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BoxDraftForm from '../components/BoxDraftForm.vue'
 import AppIcon from '../components/AppIcon.vue'
@@ -19,6 +19,11 @@ const views = [
 ] as const
 const selected = computed(() => views.find(view => view.id === route.query.view) ?? views[2])
 function changeView(id: string) { router.replace({ path: '/', query: { ...route.query, view: id } }) }
+async function openDrawing() {
+  await router.replace({ path: '/', query: { ...route.query, view: 'drawing' } })
+  await nextTick()
+  window.scrollTo({ top: 0, behavior: 'auto' })
+}
 </script>
 <template>
   <div class="mb-5 flex items-center justify-between gap-4"><h1 class="text-lg font-semibold">Короб</h1><span class="text-xs text-muted">FEFCO {{ Number(draft.design.split('-')[0]) }} · {{ draft.profile }}</span></div>
@@ -31,7 +36,7 @@ function changeView(id: string) { router.replace({ path: '/', query: { ...route.
         </nav>
         <span class="ml-auto hidden text-xs text-muted sm:block">мм</span>
       </div>
-      <ProductionScene v-if="selected.id==='route'" @drawing="changeView('drawing')" />
+      <ProductionScene v-if="selected.id==='route'" @drawing="openDrawing" />
       <GeometryDrawing v-else-if="selected.id==='drawing' && confirmedProduction?.geometry" :geometry="confirmedProduction.geometry" :names="confirmedProduction.names" :review="confirmedProduction.review" />
       <SheetLayout v-else-if="selected.id==='layout' && confirmedProduction?.geometry" />
       <div v-else :key="selected.id" class="flex min-h-72 flex-col items-center justify-center gap-3 px-5 py-14 text-center sm:min-h-[420px] lg:min-h-[540px]" role="status"><AppIcon :name="selected.icon" class="size-8 text-muted" /><p class="text-sm text-muted">Выберите и подтвердите маршрут с рассчитанной развёрткой.</p><button type="button" class="min-h-11 cursor-pointer rounded-md bg-accent-soft px-4 py-2 text-accent" @click="changeView('route')">Выбрать маршрут</button></div>
