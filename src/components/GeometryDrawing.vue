@@ -72,7 +72,8 @@ const detailYRight = computed(() => detailRight.value >= detailLeft.value ? 130 
         <h3 class="mb-3 text-sm font-semibold">Просечка</h3>
         <div class="bg-canvas px-3 py-2">
           <svg class="h-44 w-full" viewBox="0 0 300 170" role="img" :aria-label="`Ширина ${slot.width} мм. Перепад биговок ${slot.offset} мм.`">
-            <path d="M25 35 H110 V130 H145 V35 H200" fill="none" stroke="var(--ink)" stroke-width="1.5" />
+            <path d="M110 35 V130 H145 V35" fill="none" stroke="var(--ink)" stroke-width="1.5" />
+            <path d="M25 35 Q35 29 45 35 T65 35 T85 35 T105 35 L110 35 M145 35 Q154 29 163 35 T181 35 T199 35" fill="none" stroke="var(--muted)" stroke-width="1.5" />
             <line x1="25" :y1="detailYLeft" x2="110" :y2="detailYLeft" stroke="var(--accent)" stroke-dasharray="5 4" />
             <line x1="145" :y1="detailYRight" x2="200" :y2="detailYRight" stroke="var(--accent)" stroke-dasharray="5 4" />
             <path d="M110 30 V12 H145 V30" fill="none" stroke="var(--muted)" />
