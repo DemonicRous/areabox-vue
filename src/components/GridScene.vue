@@ -96,7 +96,7 @@ function replaceProducts(){
   const collect=(root:THREE.Object3D)=>root.traverse(object=>{if(object instanceof THREE.Mesh){geometries.add(object.geometry);(Array.isArray(object.material)?object.material:[object.material]).forEach(m=>materials.add(m))}})
   products.forEach(p=>{group?.remove(p.mesh,p.shadow);collect(p.mesh);collect(p.shadow)})
   if(productTemplate)collect(productTemplate)
-  geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());products.clear();prepareProduct();occupied.value.forEach(i=>addProduct(i));invalidate()
+  geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());products.clear();if(renderer)renderer.shadowMap.needsUpdate=true;prepareProduct();occupied.value.forEach(i=>addProduct(i));invalidate()
 }
 async function changeProduct(){
   const request=++modelRequest,item=productModels.find(p=>p.id===gridProductModel.value)!
@@ -248,6 +248,10 @@ function renderFrame(time:number) {
       product.progress=reduced.matches?target:THREE.MathUtils.lerp(product.progress,target,1-Math.exp(-dt*10))
       if(Math.abs(product.progress-target)<.001)product.progress=target
       product.mesh.visible=product.progress>0
+      // Cast the model's real silhouette only once it is opaque and settled.
+      // During appearance/removal the soft contact shadow follows the fade.
+      const castShadow=product.progress===1
+      product.mesh.traverse(object=>{if(object instanceof THREE.Mesh&&object.castShadow!==castShadow){object.castShadow=castShadow;renderer!.shadowMap.needsUpdate=true}})
       product.materials.forEach(material=>{const fading=product.progress<1,transparent=fading||material.userData.baseTransparent,depthWrite=fading?false:material.userData.baseDepthWrite;if(material.transparent!==transparent||material.depthWrite!==depthWrite){material.transparent=transparent;material.depthWrite=depthWrite;material.needsUpdate=true}material.opacity=product.progress*material.userData.baseOpacity})
       product.shadow.visible=product.progress>0
       product.shadow.material.opacity=product.progress*product.progress*.22
