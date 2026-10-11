@@ -4,23 +4,20 @@ import { layoutLimits } from './layout'
 import { checkMachine, parameter, type Geometry, type SheetPlan } from './production'
 import type { BoxInput, ProfileId } from './types'
 
-export interface GridSettings { rows: number; cols: number; heightMm: number; profile: ProfileId; clearanceMm: number; productLengthMm: number; productWidthMm: number; cellGapMm: number; slotMm: number; assembly: 'auto' | 'premier' | 'manual' }
+export interface GridSettings { rows: number; cols: number; heightMm: number; profile: ProfileId; clearanceMm: number; productLengthMm: number; productWidthMm: number; productHeightMm: number; cellGapMm: number; slotMm: number; assembly: 'auto' | 'premier' | 'manual' }
 export interface GridStrip { name: string; length: number; height: number; quantity: number; slots: number[]; fromTop: boolean; points: number[][] }
 export interface GridModel { errors: string[]; width: number; length: number; height: number; cellL: number; cellW: number; thickness: number; depth: number; strips: GridStrip[]; pieceArea: number }
-export function calculateGrid(box: BoxInput, settings: GridSettings): GridModel {
+export function calculateGrid(_box: BoxInput, settings: GridSettings): GridModel {
   const errors: string[] = []
   const t = cardboardProfiles.find(item=>item.id===settings.profile)?.actualThicknessMm ?? NaN
-  const length = box.lengthMm-settings.clearanceMm, width = box.widthMm-settings.clearanceMm
-  const height = settings.heightMm===0 ? box.heightMm-5 : settings.heightMm
+  const cellL = settings.productLengthMm+settings.cellGapMm, cellW = settings.productWidthMm+settings.cellGapMm
+  const length = cellL*settings.cols+t*(settings.cols-1), width = cellW*settings.rows+t*(settings.rows-1)
+  const height = settings.heightMm===0 ? settings.productHeightMm : settings.heightMm
   if (![settings.rows,settings.cols].every(n=>Number.isInteger(n)&&n>=1&&n<=30) || settings.rows*settings.cols<2) errors.push('Ряды и колонки: целые числа 1–30, не менее двух ячеек.')
-  if (![box.lengthMm,box.widthMm,box.heightMm].every(n=>Number.isFinite(n)&&n>0&&n<=2500)) errors.push('Укажите положительные внутренние размеры короба до 2500 мм.')
-  if(box.lengthMm<50||box.widthMm<50||box.heightMm<30||box.widthMm>box.lengthMm) errors.push('Короб: L и W от 50 мм, H от 30 мм; W не больше L.')
-  if (![settings.clearanceMm,settings.cellGapMm,settings.productLengthMm,settings.productWidthMm].every(n=>Number.isFinite(n)&&n>=0)) errors.push('Зазор и размеры продукции должны быть неотрицательными числами.')
-  if (!Number.isFinite(height) || height<20 || height>box.heightMm) errors.push('Высота решётки: от 20 мм до внутренней высоты короба.')
+  if (![settings.productLengthMm,settings.productWidthMm,settings.productHeightMm].every(n=>Number.isFinite(n)&&n>0&&n<=2500)) errors.push('Габариты продукта: положительные числа до 2500 мм.')
+  if (![settings.clearanceMm,settings.cellGapMm].every(n=>Number.isFinite(n)&&n>=0)) errors.push('Допуск ячейки и запас короба должны быть неотрицательными числами.')
+  if (!Number.isFinite(height) || height<20 || height>2500) errors.push('Высота решётки: от 20 до 2500 мм.')
   if (!Number.isFinite(t) || !Number.isFinite(settings.slotMm) || settings.slotMm<t || settings.slotMm>20) errors.push('Просечка должна быть не уже фактической толщины картона и не более 20 мм.')
-  const cellL = (length-t*(settings.cols-1))/settings.cols, cellW = (width-t*(settings.rows-1))/settings.rows
-  if (![cellL,cellW].every(n=>Number.isFinite(n)&&n>0)) errors.push('Ячейки не помещаются в заданные размеры.')
-  if (settings.productLengthMm>0 && cellL<settings.productLengthMm+settings.cellGapMm || settings.productWidthMm>0 && cellW<settings.productWidthMm+settings.cellGapMm) errors.push('Продукция не помещается в ячейку с заданным допуском.')
   const depth = height/2+5
   const strips: GridStrip[] = []
   if (!errors.length) {

@@ -16,7 +16,7 @@ function rebuild() {
   if(!scene||!controls||!camera) return
   disposeGroup();group=new THREE.Group();scene.add(group);targets=[];products=new Map()
   const totalX=props.cellL*props.cols+props.board*(props.cols-1), totalZ=props.cellW*props.rows+props.board*(props.rows-1)
-  const unit=7/Math.max(totalX,totalZ,props.gridHeight),h=props.gridHeight*unit,t=props.board*unit
+  const unit=7/Math.max(totalX,totalZ,props.gridHeight,props.height),h=props.gridHeight*unit,t=props.board*unit
   function strip(sx:number,sz:number,x:number,z:number) {
     const mesh=new THREE.Mesh(new THREE.BoxGeometry(sx,h,sz),new THREE.MeshStandardMaterial({color:0xcaa86b,roughness:.85}))
     mesh.position.set(x,h/2,z);group!.add(mesh)
@@ -29,7 +29,7 @@ function rebuild() {
   for(let r=0;r<props.rows;r++) for(let c=0;c<props.cols;c++) {
     const key=`${r}:${c}`;valid.add(key)
     const x=(-totalX/2+c*(props.cellL+props.board)+props.cellL/2)*unit,z=(-totalZ/2+r*(props.cellW+props.board)+props.cellW/2)*unit
-    const target=new THREE.Mesh(new THREE.BoxGeometry(props.cellL*unit,Math.max(props.height,props.gridHeight)*unit,props.cellW*unit),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));target.position.set(x,h/2,z);target.userData.key=key;group.add(target);targets.push(target)
+    const target=new THREE.Mesh(new THREE.BoxGeometry(props.cellL*unit,Math.max(props.height,props.gridHeight)*unit,props.cellW*unit),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));target.position.set(x,Math.max(props.height,props.gridHeight)*unit/2,z);target.userData.key=key;group.add(target);targets.push(target)
     const product=new THREE.Mesh(new THREE.BoxGeometry(props.length*unit,props.height*unit,props.width*unit),new THREE.MeshStandardMaterial({color:0x58b4c7,transparent:true,opacity:.5}));product.position.set(x,props.height*unit/2,z);product.visible=occupied.value.has(key);group.add(product);products.set(key,product)
   }
   occupied.value=new Set([...occupied.value].filter(key=>valid.has(key)))

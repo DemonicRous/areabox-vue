@@ -10,21 +10,21 @@ const machineContext={module:{exports:{}},exports:{}}
 vm.runInNewContext(machineOut.outputFiles[0].text,machineContext)
 const {machines}=machineContext.module.exports
 const box={design:'grid',profile:'B',lengthMm:300,widthMm:200,heightMm:150,hasPrinting:false,creaseLevel:'same',printType:'digital',printColors:1}
-const settings={rows:3,cols:3,heightMm:0,profile:'D',clearanceMm:5,productLengthMm:0,productWidthMm:0,cellGapMm:1,slotMm:7,assembly:'premier'}
+const settings={rows:3,cols:3,heightMm:0,profile:'D',clearanceMm:5,productLengthMm:100,productWidthMm:60,productHeightMm:150,cellGapMm:1,slotMm:7,assembly:'premier'}
 const model=calculateGrid(box,settings)
 assert.equal(model.errors.length,0)
-assert.equal(model.length,295)
-assert.equal(model.width,195)
-assert.equal(model.height,145)
-assert.equal(model.depth,77.5)
+assert.equal(model.length,308)
+assert.equal(model.width,188)
+assert.equal(model.height,150)
+assert.equal(model.depth,80)
 assert.equal(model.thickness,2.5)
 assert.equal(model.strips.length,2)
 assert.equal(model.strips[0].quantity,2)
 assert.equal(model.strips[0].slots.length,2)
 assert(Math.abs(model.cellL*3+model.thickness*2-model.length)<1e-8,'Equal outer and inner cells must fit within the grid')
 assert.equal(model.strips[0].points[0][1],0)
-assert.equal(model.strips[1].points[0][1],145,'Cross strips have top-entry slots')
-assert.equal(model.pieceArea,(295*2+195*2)*145/1e6)
+assert.equal(model.strips[1].points[0][1],150,'Cross strips have top-entry slots')
+assert.equal(model.pieceArea,(308*2+188*2)*150/1e6)
 const roda=gridRoute(box,settings,model,machines.gridCutting[0])
 assert.equal(roda.blocked.length,0)
 assert.equal(roda.sheet,null)
@@ -34,11 +34,11 @@ assert(calculateGrid(box,{...settings,rows:1,cols:1}).errors.length)
 assert(calculateGrid(box,{...settings,rows:2.5}).errors.length)
 assert(calculateGrid(box,{...settings,heightMm:4}).errors.length)
 assert(calculateGrid(box,{...settings,clearanceMm:NaN}).errors.length)
-assert(calculateGrid(box,{...settings,productLengthMm:100}).errors.length,'Oversize products must not be presented as fitting')
+assert.equal(calculateGrid(box,{...settings,productLengthMm:200}).length,608,'Product dimensions must drive the grid')
 assert(calculateGrid(box,{...settings,profile:'BC',slotMm:6}).errors.length)
 assert(gridRoute(box,{...settings,slotMm:6},calculateGrid(box,{...settings,slotMm:6}),machines.gridCutting[0]).blocked.some(reason=>reason.includes('7 мм')))
-const tall=calculateGrid({...box,heightMm:405},{...settings,assembly:'manual'})
-assert(gridRoute({...box,heightMm:405},{...settings,assembly:'manual'},tall,machines.gridCutting[0]).blocked.some(reason=>reason.includes('45–200')))
+const tall=calculateGrid({...box,heightMm:405},{...settings,productHeightMm:405,assembly:'manual'})
+assert(gridRoute({...box,heightMm:405},{...settings,productHeightMm:405,assembly:'manual'},tall,machines.gridCutting[0]).blocked.some(reason=>reason.includes('45–200')))
 const many={...settings,rows:8}
 assert(gridRoute(box,many,calculateGrid(box,many),machines.gridCutting[0]).blocked.some(reason=>reason.includes('6 продольных')))
 const plotter=gridRoute(box,settings,model,machines.plotter[0])
@@ -62,14 +62,14 @@ assert(ward.blocked.some(reason=>reason.includes('300')),'WARD single-blank pall
 console.log('Grid geometry, equal cells, product fit, RODA/Premier limits and complete-kit packing passed')
 
 const largeBox={...box,lengthMm:700,widthMm:600}
-const autoSettings={...settings,assembly:'auto'}
+const autoSettings={...settings,productLengthMm:240,assembly:'auto'}
 const autoManual=gridRoute(largeBox,autoSettings,calculateGrid(largeBox,autoSettings),machines.gridCutting[0])
 assert.equal(autoManual.assembly,'manual')
 assert.equal(autoManual.blocked.length,0,'Manual assembly must remove Premier limits while preserving cutter checks')
 assert(autoManual.review.some(reason=>reason.includes('Ручная сборка решётки')))
-assert.equal(gridRoute(box,autoSettings,model,machines.gridCutting[0]).assembly,'premier')
+assert.equal(gridRoute(box,{...settings,assembly:'auto'},model,machines.gridCutting[0]).assembly,'premier')
 const tooLong={...box,lengthMm:1500,widthMm:600}
-assert(gridRoute(tooLong,autoSettings,calculateGrid(tooLong,autoSettings),machines.gridCutting[0]).blocked.some(reason=>reason.includes('1300')))
+assert(gridRoute(tooLong,autoSettings,calculateGrid(tooLong,{...autoSettings,productLengthMm:600}),machines.gridCutting[0]).blocked.some(reason=>reason.includes('1300')))
 
 for(let i=0;i<plotter.sheet.items.length;i++) for(let j=i+1;j<plotter.sheet.items.length;j++) {
   const a=plotter.sheet.items[i],b=plotter.sheet.items[j]
@@ -91,3 +91,23 @@ assert.equal(combined.geometry.width,plain.geometry.width)
 assert.equal(combined.geometry.height,plain.geometry.height)
 assert.equal(combined.blocked.length,plain.blocked.length,'Combined design must retain FEFCO 201 equipment eligibility')
 console.log('Grid state retention, packing overlap and combined FEFCO 201 checks passed')
+
+state.useBoxDraft().design='grid-0201'
+state.gridDraft.productLengthMm=80
+state.gridDraft.productWidthMm=120
+state.gridDraft.productHeightMm=160
+state.gridDraft.heightMm=0
+state.gridDraft.cols=4
+state.gridDraft.rows=3
+assert.equal(state.gridModel.value.cellL,81)
+assert.equal(state.gridModel.value.cellW,121)
+assert.equal(state.gridModel.value.height,160)
+assert.equal(state.useBoxDraft().lengthMm,373)
+assert.equal(state.useBoxDraft().widthMm,336.5)
+assert.equal(state.useBoxDraft().heightMm,165)
+state.gridDraft.heightMm=200
+assert.equal(state.useBoxDraft().heightMm,205)
+state.gridDraft.productHeightMm=220
+assert.equal(state.useBoxDraft().heightMm,225)
+assert.equal(state.gridModel.value.height,200,'Explicit height must stay independent of product height')
+console.log('Product-driven composition, automatic height and fitted box dimensions passed')

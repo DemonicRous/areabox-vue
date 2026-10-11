@@ -30,6 +30,7 @@ const dimensions = [
 ] as const
 const errors = computed(() => {
   const issues: string[] = []
+  if (draft.design==='grid') return issues
   for (const field of dimensions) {
     const value = draft[field.key]
     if (typeof value !== 'number' || !Number.isFinite(value) || value < field.min || value > 2500) {
@@ -49,10 +50,15 @@ const errors = computed(() => {
     <h2 id="box-parameters" class="mb-5 text-sm font-semibold">Параметры</h2>
     <div class="space-y-5">
       <CatalogSelect v-model="draft.design" label="Конструкции" :options="designOptions" />
-      <fieldset><legend class="mb-2 text-xs font-medium text-muted">{{ draft.design.startsWith('grid') ? 'Внутренние размеры короба, мм' : 'Размеры, мм' }}</legend><div class="grid grid-cols-3 gap-2">
+      <fieldset v-if="!draft.design.startsWith('grid')"><legend class="mb-2 text-xs font-medium text-muted">{{ draft.design.startsWith('grid') ? 'Внутренние размеры короба, мм' : 'Размеры, мм' }}</legend><div class="grid grid-cols-3 gap-2">
         <label v-for="field in dimensions" :key="field.key" class="field">{{ field.label }}<input v-model.number="draft[field.key]" class="control tabular-nums" type="number" inputmode="decimal" :min="field.min" max="2500" step="1" :aria-invalid="typeof draft[field.key] !== 'number' || draft[field.key] < field.min || draft[field.key] > 2500 || (field.key === 'widthMm' && draft.widthMm > draft.lengthMm)" :aria-describedby="errors.length ? 'box-errors' : undefined" /></label>
       </div></fieldset>
       <GridControls v-if="draft.design.startsWith('grid')" />
+      <div v-if="draft.design==='grid-0201'" class="rounded-lg border border-line bg-canvas p-3 text-xs">
+        <p class="text-muted">Короб FEFCO 201 · внутренние размеры автоматически</p>
+        <p class="mt-2 font-medium tabular-nums">L {{ draft.lengthMm }} × W {{ draft.widthMm }} × H {{ draft.heightMm }} мм</p>
+        <p class="mt-2 text-muted">Посадочный запас 5 мм. Высота учитывает продукт и решётку.</p>
+      </div>
       <CatalogSelect v-if="draft.design!=='grid'" v-model="draft.profile" :label="draft.design==='grid-0201' ? 'Профиль короба' : 'Профиль картона'" :options="profileOptions" :columns="['Фактическая', 'Чертёжная']" />
       <CatalogSelect v-if="draft.design!=='grid'" v-model="draft.creaseLevel" label="Расположение биговок" :options="availableCreaseOptions" />
       <p v-if="draft.design==='0203'" class="text-[11px] text-muted">FEFCO 203: биговки на разных уровнях; вырезка на высечке или плоттере.</p>

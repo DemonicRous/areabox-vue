@@ -35,7 +35,7 @@ function confirm() { if(!current.value || current.value.blocked.length) return; 
           <rect v-for="n in grid.rows-1" :key="`row-${n}`" x="0" :y="n*model.cellW+(n-1)*model.thickness" :width="model.length" :height="model.thickness" fill="var(--accent)" />
         </svg>
       </div>
-      <GridScene v-else-if="gridView==='scene'" :length="grid.productLengthMm || Math.max(1,model.cellL-grid.cellGapMm)" :width="grid.productWidthMm || Math.max(1,model.cellW-grid.cellGapMm)" :height="model.height" :grid-height="model.height" :rows="grid.rows" :cols="grid.cols" :cell-l="model.cellL" :cell-w="model.cellW" :board="model.thickness" />
+      <GridScene v-else-if="gridView==='scene'" :length="grid.productLengthMm || Math.max(1,model.cellL-grid.cellGapMm)" :width="grid.productWidthMm || Math.max(1,model.cellW-grid.cellGapMm)" :height="grid.productHeightMm" :grid-height="model.height" :rows="grid.rows" :cols="grid.cols" :cell-l="model.cellL" :cell-w="model.cellW" :board="model.thickness" />
       <div v-else class="space-y-5">
         <section v-for="strip in model.strips" :key="strip.name">
           <div class="mb-2 flex flex-wrap justify-between gap-2 text-sm"><h3 class="font-medium">{{ strip.name }} · {{ strip.quantity }} шт.</h3><span class="text-muted">{{ fmt(strip.length) }} × {{ fmt(strip.height) }} мм</span></div>

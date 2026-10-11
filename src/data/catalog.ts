@@ -13,11 +13,11 @@ export const cardboardProfiles: CardboardProfile[] = [
 ]
 export const profiles: ProfileId[] = cardboardProfiles.map(profile => profile.id)
 export const designs: { id: DesignId; title: string }[] = [
-  { id: 'grid', title: 'Решётка · разделители' },
-  { id: 'grid-0201', title: 'Решётка + FEFCO 201 · короб с разделителями' },
   { id: '0200', title: '0200 · без верхних клапанов' },
   { id: '0201', title: '0201 · четырёхклапанный' },
   { id: '0203', title: '0203 · полное перекрытие' },
   { id: '0201-2', title: '0201 · две половины' },
   { id: '0201-4', title: '0201 · четыре четверти' },
+  { id: 'grid', title: 'Решётка · разделители' },
+  { id: 'grid-0201', title: 'Решётка + FEFCO 201 · короб с разделителями' },
 ]
