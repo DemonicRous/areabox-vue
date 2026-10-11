@@ -63,9 +63,11 @@ onUnmounted(() => document.removeEventListener('pointerdown', outside))
     <label :id="`${id}-label`" :for="`${id}-trigger`" class="mb-2 block text-xs font-medium text-muted">{{ label }}</label>
     <button :id="`${id}-trigger`" type="button" role="combobox" aria-haspopup="listbox" :aria-expanded="opened" :aria-controls="`${id}-list`" :aria-labelledby="`${id}-label`" :aria-activedescendant="opened ? `${id}-option-${active}` : undefined" class="control flex cursor-pointer items-center gap-3 text-left hover:border-accent" @click="opened ? close() : open()" @keydown="keydown">
       <span class="min-w-0 flex-1">
-        <span v-if="columns" class="grid grid-cols-[3rem_1fr_1fr] items-center gap-2">
-          <span class="font-semibold">{{ selected?.label }}</span>
-          <span v-for="(cell, index) in selected?.cells" :key="index" class="text-xs tabular-nums text-muted">{{ columns[index] }}<span class="mt-0.5 block text-sm text-ink">{{ cell }}</span></span>
+        <span v-if="columns" class="flex items-center gap-4 py-1">
+          <span class="flex size-11 shrink-0 items-center justify-center rounded-md bg-accent-soft text-lg font-semibold text-accent">{{ selected?.label }}</span>
+          <span class="min-w-0 flex-1 space-y-1">
+            <span v-for="(cell, index) in selected?.cells" :key="index" class="flex items-baseline justify-between gap-2 text-xs font-normal text-muted"><span>{{ columns[index] }}</span><span class="shrink-0 text-sm font-medium tabular-nums text-ink">{{ cell }}</span></span>
+          </span>
         </span>
         <span v-else class="block py-0.5"><span class="block font-semibold tabular-nums">{{ selected?.label }}</span><span class="mt-1 block text-xs font-normal text-muted">{{ selected?.description }}</span></span>
       </span>
