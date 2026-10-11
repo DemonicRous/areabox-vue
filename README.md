@@ -2,6 +2,9 @@
 
 Каркас приложения для расчёта гофрокоробов на Vue 3, TypeScript и Vite.
 
+- Приложение: https://demonicrous.github.io/areabox-vue/
+- Репозиторий: https://github.com/DemonicRous/areabox-vue
+
 ## Статус
 
 Версия 0.1: оболочка, пять маршрутов и форма параметров с базовой валидацией.
