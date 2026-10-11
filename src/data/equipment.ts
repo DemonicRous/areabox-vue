@@ -22,17 +22,25 @@ export const printingCuttingCompatibility = {
 export const digitalPrintingAreaAllowance = { x: 100, y: 100 } as const
 
 export function createStitchingTemplate(manufacturer: string, model: string): EquipmentParameterGroup[] {
+  const godswill = model === 'GTS-3000'
   return [
     { id: 'general', title: 'Общие сведения', parameters: [
       { id: 'name', label: 'Производитель', format: 'text', value: manufacturer },
       { id: 'model', label: 'Модель', format: 'text', value: model },
       { id: 'profiles', label: 'Доступные профили картона', format: 'text', value: profiles.join(' · ') },
-      { id: 'designs', label: 'Доступные конструкции', format: 'text' },
+      { id: 'designs', label: 'Доступные конструкции', format: 'text', value: 'Коробки из 2 и 4 половинок' },
     ] },
     { id: 'format', title: 'Размеры и ограничения', parameters: [
-      { id: 'panelL', label: 'Панель L между биговками', format: 'range', unit: 'мм' },
-      { id: 'panelW', label: 'Панель W между биговками', format: 'range', unit: 'мм' },
-      { id: 'bodyH', label: 'Корпус H между биговками', format: 'range', unit: 'мм' },
+      { id: 'panelL', label: 'Панель L между биговками', format: 'range', unit: 'мм', value: godswill ? '300 / —' : '370 / 1880' },
+      { id: 'panelW', label: 'Панель W между биговками', format: 'range', unit: 'мм', value: godswill ? '190 / —' : '90 / 1000' },
+      { id: 'bodyH', label: 'Корпус H между биговками', format: 'range', unit: 'мм', value: godswill ? '200 / —' : '100 / 2000' },
+      { id: 'sheetX', label: 'Ширина заготовки по схеме', format: 'range', unit: 'мм', value: godswill ? '490 / 3000' : '490 / 2000' },
+      { id: 'sheetY', label: 'Высота заготовки с клапанами', format: 'range', unit: 'мм', value: godswill ? '400 / 2200' : '400 / 2900' },
+      { id: 'flapHeight', label: 'Высота клапана', format: 'range', unit: 'мм', value: godswill ? '100 / 700' : '80 / 450' },
+      ...(godswill ? [
+        { id: 'squarePanel', label: 'Минимальная панель квадратного короба', format: 'number' as const, unit: 'мм', value: '250' },
+        { id: 'heightLimit', label: 'Дополнительный размер по высоте на схеме (назначение уточняется)', format: 'text' as const, unit: 'мм', value: 'макс. 1350' },
+      ] : []),
       { id: 'jointFlap', label: 'Соединительный клапан', format: 'number', unit: 'мм', value: '45' },
     ] },
     { id: 'stitching', title: 'Параметры сшивки', parameters: [
