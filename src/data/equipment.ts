@@ -18,13 +18,13 @@ export const wardTemplate: EquipmentParameterGroup[] = [
   { id: 'general', title: 'Общие сведения', parameters: [
     { id: 'name', label: 'Название', format: 'text', value: 'WARD' },
     { id: 'model', label: 'Модель', format: 'text' },
-    { id: 'profiles', label: 'Доступные профили картона', format: 'text' },
-    { id: 'designs', label: 'Доступные конструкции', format: 'text' },
+    { id: 'profiles', label: 'Доступные профили картона', format: 'text', value: 'E (Ламинация) · D · B · C · BF · BE · BD · BC' },
+    { id: 'designs', label: 'Доступные конструкции', format: 'text', value: 'Любая конструкция' },
   ] },
   { id: 'feed', title: 'Формат подачи', parameters: [
-    { id: 'sheetX', label: 'Заготовка · X', format: 'range', unit: 'мм' },
-    { id: 'sheetY', label: 'Заготовка · Y', format: 'range', unit: 'мм' },
-    { id: 'fluteDirection', label: 'Направление гофры относительно X / Y', format: 'text' },
+    { id: 'sheetX', label: 'Заготовка · X', format: 'range', unit: 'мм', value: '560 / 2460' },
+    { id: 'sheetY', label: 'Заготовка · Y', format: 'range', unit: 'мм', value: '560 / 1549' },
+    { id: 'fluteDirection', label: 'Направление гофры относительно X / Y', format: 'text', value: 'X — поперёк гофры, Y — вдоль гофры' },
   ] },
   { id: 'cutting', title: 'Рабочее поле и раскладка', parameters: [
     { id: 'workingX', label: 'Рабочее поле · X', format: 'number', unit: 'мм' },
@@ -36,11 +36,11 @@ export const wardTemplate: EquipmentParameterGroup[] = [
     { id: 'maxPlaces', label: 'Максимальное число мест на штампе', format: 'number' },
   ] },
   { id: 'operations', title: 'Операции и ограничения', parameters: [
-    { id: 'printColors', label: 'Количество цветов печати', format: 'number' },
-    { id: 'printSide', label: 'Сторона печати', format: 'text' },
+    { id: 'printColors', label: 'Количество цветов печати', format: 'number', value: '3' },
+    { id: 'printSide', label: 'Сторона печати', format: 'text', value: 'Внешняя сторона короба' },
     { id: 'dieCutting', label: 'Высечка', format: 'text', value: 'Ротационная высечка' },
-    { id: 'folderGluer', label: 'Фальцесклейка', format: 'text' },
-    { id: 'breakWidth', label: 'Рабочая ширина разламывателя', format: 'number', unit: 'мм' },
+    { id: 'folderGluer', label: 'Фальцесклейка', format: 'text', value: 'Нет' },
+    { id: 'breakWidth', label: 'Рабочая ширина разламывателя', format: 'number', unit: 'мм', value: '1600' },
     { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
   ] },
 ]
