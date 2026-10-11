@@ -21,13 +21,36 @@ export const printingCuttingCompatibility = {
 
 export const digitalPrintingAreaAllowance = { x: 100, y: 100 } as const
 
+export const gerunTemplate: EquipmentParameterGroup[] = [
+  { id: 'general', title: 'Общие сведения', parameters: [
+    { id: 'name', label: 'Производитель', format: 'text', value: 'Gerun' },
+    { id: 'model', label: 'Модель', format: 'text', value: '1320' },
+    { id: 'profiles', label: 'Доступные профили картона', format: 'text' },
+  ] },
+  { id: 'feed', title: 'Формат подачи', parameters: [
+    { id: 'feeding', label: 'Подача заготовки', format: 'text', value: 'Ручная' },
+    { id: 'feedWidth', label: 'Максимальная ширина подачи', format: 'number', unit: 'мм', value: '1250' },
+    { id: 'fluteDirection', label: 'Направление подачи относительно гофры', format: 'text', value: 'Перпендикулярно направлению гофры' },
+  ] },
+  { id: 'lamination', title: 'Параметры ламинирования', parameters: [
+    { id: 'temperature', label: 'Температура склеивания', format: 'range', unit: '°C', value: '80 / 120' },
+    { id: 'pressure', label: 'Давление ламинирования', format: 'range', unit: 'МПа', value: '0 / 8' },
+    { id: 'speed', label: 'Скорость машины', format: 'range', unit: 'м/мин', value: '0 / 80' },
+    { id: 'capacity', label: 'Производительность', format: 'number', unit: 'шт./час', value: '1000' },
+  ] },
+  { id: 'machine', title: 'Параметры машины', parameters: [
+    { id: 'dimensions', label: 'Размеры машины', format: 'text', unit: 'мм', value: '2400 × 5500 × 1600' },
+    { id: 'power', label: 'Суммарная мощность', format: 'number', unit: 'кВт', value: '20' },
+  ] },
+]
+
 export function createStitchingTemplate(manufacturer: string, model: string): EquipmentParameterGroup[] {
   const godswill = model === 'GTS-3000'
   return [
     { id: 'general', title: 'Общие сведения', parameters: [
       { id: 'name', label: 'Производитель', format: 'text', value: manufacturer },
       { id: 'model', label: 'Модель', format: 'text', value: model },
-      { id: 'profiles', label: 'Доступные профили картона', format: 'text', value: profiles.join(' · ') },
+      { id: 'profiles', label: 'Доступные профили картона', format: 'text', value: profiles.filter(profile => profile !== 'F' && profile !== 'E').join(' · ') },
       { id: 'designs', label: 'Доступные конструкции', format: 'text', value: 'Коробки из 2 и 4 половинок' },
     ] },
     { id: 'format', title: 'Размеры и ограничения', parameters: [

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
-import { asahiTemplate, eternaTemplate, createInlineTemplate, createPrintingTemplate, createStitchingTemplate, fosberTemplate, kongsbergTemplate, wardTemplate, type EquipmentParameterGroup } from '../data/equipment'
+import { asahiTemplate, eternaTemplate, createInlineTemplate, createPrintingTemplate, createStitchingTemplate, fosberTemplate, gerunTemplate, kongsbergTemplate, wardTemplate, type EquipmentParameterGroup } from '../data/equipment'
 interface Passport { id: string; name: string; groups: EquipmentParameterGroup[] }
 const machines: Record<string, Passport[]> = {
+  laminator: [{ id: 'gerun-1320', name: 'Gerun 1320', groups: gerunTemplate }],
   stitching: [
     { id: 'godswill-gts-3000', name: 'Godswill GTS-3000', groups: createStitchingTemplate('Godswill', 'GTS-3000') },
     { id: 'gofrotime-sdj-2000b', name: 'GofroTime SDJ-2000B', groups: createStitchingTemplate('GofroTime', 'SDJ-2000B') },
@@ -29,6 +30,7 @@ const categories = [
   { id: 'rotary', title: 'Ротационная высечка', count: 1 },
   { id: 'plotter', title: 'Плоттер', count: 1 },
   { id: 'stitching', title: 'Сшивка', count: 2 },
+  { id: 'laminator', title: 'Ламинатор', count: 1 },
 ] as const
 const opened = ref<string | null>('corrugator')
 function toggle(id: string) { opened.value = opened.value === id ? null : id }
