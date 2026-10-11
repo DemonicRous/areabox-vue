@@ -3,6 +3,7 @@ import { computed, watch } from 'vue'
 import { useBoxDraft } from '../composables/useBoxDraft'
 import { designs, cardboardProfiles } from '../data/catalog'
 import CatalogSelect from './CatalogSelect.vue'
+import GridControls from './GridControls.vue'
 import type { PrintType } from '../domain/types'
 const creaseOptions: { value: 'same' | 'different'; label: string }[] = [
   { value: 'same', label: 'На одной высоте' },
@@ -15,11 +16,12 @@ const printOptions: { value: PrintType; label: string }[] = [
 ]
 const formatMm = (value: number) => `${value.toLocaleString('ru-RU')} мм`
 const profileOptions = cardboardProfiles.map(profile => ({ value: profile.id, label: profile.id, cells: [formatMm(profile.actualThicknessMm), formatMm(profile.drawingThicknessMm)] }))
-const designOptions = designs.map(design => ({ value: design.id, label: `FEFCO ${Number(design.id.split('-')[0])}`, description: design.title.split(' · ')[1] }))
+const designOptions = designs.map(design => ({ value: design.id, label: design.id.startsWith('grid') ? design.title.split(' · ')[0]! : `FEFCO ${Number(design.id.split('-')[0])}`, description: design.title.split(' · ')[1] }))
 const draft = useBoxDraft()
 const availableCreaseOptions = computed(() => draft.design === '0203' ? creaseOptions.filter(option=>option.value==='different') : creaseOptions)
 watch(() => draft.design, design => {
   if (design === '0203') draft.creaseLevel = 'different'
+  if (design === 'grid') draft.hasPrinting = false
 }, { immediate: true, flush: 'sync' })
 const dimensions = [
   { key: 'lengthMm', label: 'Длина L', min: 50 },
@@ -47,13 +49,14 @@ const errors = computed(() => {
     <h2 id="box-parameters" class="mb-5 text-sm font-semibold">Параметры</h2>
     <div class="space-y-5">
       <CatalogSelect v-model="draft.design" label="Конструкции" :options="designOptions" />
-      <fieldset><legend class="mb-2 text-xs font-medium text-muted">Размеры, мм</legend><div class="grid grid-cols-3 gap-2">
+      <fieldset><legend class="mb-2 text-xs font-medium text-muted">{{ draft.design.startsWith('grid') ? 'Внутренние размеры короба, мм' : 'Размеры, мм' }}</legend><div class="grid grid-cols-3 gap-2">
         <label v-for="field in dimensions" :key="field.key" class="field">{{ field.label }}<input v-model.number="draft[field.key]" class="control tabular-nums" type="number" inputmode="decimal" :min="field.min" max="2500" step="1" :aria-invalid="typeof draft[field.key] !== 'number' || draft[field.key] < field.min || draft[field.key] > 2500 || (field.key === 'widthMm' && draft.widthMm > draft.lengthMm)" :aria-describedby="errors.length ? 'box-errors' : undefined" /></label>
       </div></fieldset>
-      <CatalogSelect v-model="draft.profile" label="Профиль картона" :options="profileOptions" :columns="['Фактическая', 'Чертёжная']" />
-      <CatalogSelect v-model="draft.creaseLevel" label="Расположение биговок" :options="availableCreaseOptions" />
+      <GridControls v-if="draft.design.startsWith('grid')" />
+      <CatalogSelect v-if="draft.design!=='grid'" v-model="draft.profile" :label="draft.design==='grid-0201' ? 'Профиль короба' : 'Профиль картона'" :options="profileOptions" :columns="['Фактическая', 'Чертёжная']" />
+      <CatalogSelect v-if="draft.design!=='grid'" v-model="draft.creaseLevel" label="Расположение биговок" :options="availableCreaseOptions" />
       <p v-if="draft.design==='0203'" class="text-[11px] text-muted">FEFCO 203: биговки на разных уровнях; вырезка на высечке или плоттере.</p>
-      <div class="space-y-4 border-t border-line pt-4">
+      <div v-if="draft.design!=='grid'" class="space-y-4 border-t border-line pt-4">
         <label class="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-medium">
           <input v-model="draft.hasPrinting" type="checkbox" class="size-4 shrink-0 accent-accent" aria-controls="box-printing" />
           Наличие печати

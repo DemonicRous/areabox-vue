@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { machines } from '../data/machines'
 const categories = [
+  { id: 'gridCutting', title: 'Высечка решёток', count: 1 },
+  { id: 'gridAssembly', title: 'Сборка решёток', count: 2 },
   { id: 'corrugator', title: 'Гофроагрегат', count: 1 },
   { id: 'inline', title: 'Инлайн', count: 2 },
   { id: 'printing', title: 'Печать', count: 2 },

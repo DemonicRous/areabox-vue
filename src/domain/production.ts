@@ -206,7 +206,7 @@ export function checkMachine(machine: Passport, input: BoxInput, geo: Geometry |
   if (supported?.includes('E (Ламинация)') && input.profile === 'E') result.review.push('Профиль E требует ламинации')
   if (category === 'inline') {
     if (input.creaseLevel !== 'same') result.blocked.push('Биговки должны быть на одной высоте')
-    if (!['0200', '0201'].includes(input.design)) result.blocked.push('Конструкция недоступна на инлайне')
+    if (!['0200', '0201', 'grid-0201'].includes(input.design)) result.blocked.push('Конструкция недоступна на инлайне')
   }
   if (category === 'stitching' && !['0201-2', '0201-4'].includes(input.design)) result.blocked.push('Сшивка доступна только для коробок из половинок')
   if (category === 'stitching' && input.design === '0201-4') result.review.push('Подача на сшивку проверена по паре L + W; последовательность сборки четырёх панелей требует подтверждения')

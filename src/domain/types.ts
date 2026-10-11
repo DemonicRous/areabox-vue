@@ -5,7 +5,7 @@ export interface CardboardProfile {
   drawingThicknessMm: number
   creaseDistanceMm: number
 }
-export type DesignId = '0200' | '0201' | '0203' | '0201-2' | '0201-4'
+export type DesignId = '0200' | '0201' | '0203' | '0201-2' | '0201-4' | 'grid' | 'grid-0201'
 export type Suitability = 'fit' | 'review' | 'blocked'
 export type PrintType = 'digital' | 'flexo' | 'pinlong'
 export interface BoxInput {
