@@ -64,11 +64,6 @@ export function createPrintingTemplate(name: 'Pinlong' | 'Цифровая пе�
         if (values[parameter.id] !== undefined) parameter.value = values[parameter.id]
       }
     }
-    groups.splice(4, 0, { id: 'area', title: 'Запас для расчёта площади', parameters: [
-      { id: 'areaAllowanceX', label: 'Прибавка к размеру развёртки · X', format: 'number', unit: 'мм', value: String(digitalPrintingAreaAllowance.x) },
-      { id: 'areaAllowanceY', label: 'Прибавка к размеру развёртки · Y', format: 'number', unit: 'мм', value: String(digitalPrintingAreaAllowance.y) },
-      { id: 'areaFormula', label: 'Площадь с запасом (X и Y в мм)', format: 'text', value: '(X + 100) × (Y + 100) / 1 000 000 м²' },
-    ] })
   }
   return groups
 }
