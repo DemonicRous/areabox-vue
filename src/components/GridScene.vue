@@ -117,6 +117,7 @@ function onDown(event:PointerEvent) {
   if(pointers.size>1){pointerStart=null;return}
   if(event.button!==0)return
   pointerStart={x:event.clientX,y:event.clientY,id:event.pointerId}
+  hovered.value=hit(event)
 }
 function onMove(event:PointerEvent) {
   if(pointers.size||event.pointerType==='touch')return
@@ -127,7 +128,8 @@ function onUp(event:PointerEvent) {
   pointers.delete(event.pointerId)
   const start=pointerStart;pointerStart=null
   if(!start||start.id!==event.pointerId||Math.hypot(event.clientX-start.x,event.clientY-start.y)>5)return
-  const index=hit(event);if(index!==null)toggle(index)
+  const index=hit(event)
+  if(index!==null){hovered.value=index;toggle(index)}
 }
 function onCancel(event:PointerEvent){pointers.delete(event.pointerId);pointerStart=null}
 function onLeave(){hovered.value=null}
@@ -225,7 +227,9 @@ function resize(){
 }
 function onVisibility(){lastTime=performance.now();invalidate()}
 function onReduced(){if(reduced.matches)rotating.value=false;invalidate()}
-function onControlStart(){tween=null;view.value=null;hovered.value=null;rotating.value=false;invalidate()}
+// OrbitControls starts on pointerdown, even for a click. Keep the hovered cell
+// until release so highlighting never falls back to a previously selected cell.
+function onControlStart(){tween=null;view.value=null;rotating.value=false;invalidate()}
 watch(active,updateHighlight)
 watch(exploded,()=>{assemblyTween={from:assembly,to:exploded.value?1:0,start:performance.now()};hovered.value=null;updateHighlight();setView(view.value??'perspective',620);invalidate()})
 watch(rotating,value=>{if(controls){controls.autoRotate=value;controls.autoRotateSpeed=.8;if(value)view.value=null;invalidate()}})
