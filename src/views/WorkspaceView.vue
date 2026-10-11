@@ -12,6 +12,21 @@ const route = useRoute()
 const router = useRouter()
 const draft = useBoxDraft()
 const area = computed(()=>{ const parts=confirmedProduction.value?.geometry?.parts; if(parts) return parts.every(part=>savedPartLayouts[part.name]) ? parts.reduce((sum,part)=>{ const plan=savedPartLayouts[part.name]!; return sum+part.quantity*plan.sheetX*plan.sheetY/plan.count/1e6 },0) : null; return savedLayout.value ? savedLayout.value.sheetX*savedLayout.value.sheetY/savedLayout.value.count/1e6 : null })
+const areaRows = computed(() => {
+  const geo = confirmedProduction.value?.geometry
+  if (geo?.parts) return [
+    ...geo.parts.map(part => {
+      const plan = savedPartLayouts[part.name]
+      return { label: `${part.name} · 1 шт.`, value: plan ? plan.sheetX * plan.sheetY / plan.count / 1e6 : null }
+    }),
+    { label: 'Комплект короба · 2 L + 2 W', value: area.value },
+  ]
+  if (geo?.count === 2) return [
+    { label: 'Одна половина · 1 шт.', value: area.value },
+    { label: 'Комплект короба · 2 шт.', value: area.value === null ? null : area.value * 2 },
+  ]
+  return [{ label: 'Расход на заготовку', value: area.value }]
+})
 watch(draft,()=>{ confirmedProduction.value=null },{deep:true})
 const views = [
   { id: 'drawing', title: 'Чертёж', icon: 'drawing', empty: 'Расчётный чертёж ещё не подключён' },
@@ -41,7 +56,7 @@ async function openDrawing() {
       <GeometryDrawing v-else-if="selected.id==='drawing' && confirmedProduction?.geometry" :geometry="confirmedProduction.geometry" :names="confirmedProduction.names" :review="confirmedProduction.review" />
       <SheetLayout v-else-if="selected.id==='layout' && confirmedProduction?.geometry" />
       <div v-else :key="selected.id" class="flex min-h-72 flex-col items-center justify-center gap-3 px-5 py-14 text-center sm:min-h-[420px] lg:min-h-[540px]" role="status"><AppIcon :name="selected.icon" class="size-8 text-muted" /><p class="text-sm text-muted">Выберите и подтвердите маршрут с рассчитанной развёрткой.</p><button type="button" class="min-h-11 cursor-pointer rounded-md bg-accent-soft px-4 py-2 text-accent" @click="changeView('route')">Выбрать маршрут</button></div>
-      <div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line px-4 py-3 text-xs text-muted tabular-nums"><span>L {{ draft.lengthMm || '—' }} × W {{ draft.widthMm || '—' }} × H {{ draft.heightMm || '—' }} мм</span><span class="ml-auto">{{ confirmedProduction?.geometry?.parts ? 'Расход на короб' : 'Расход на заготовку' }}: {{ area!==null ? area.toLocaleString('ru-RU',{minimumFractionDigits:3,maximumFractionDigits:3}) : '—' }} м²</span></div>
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line px-4 py-3 text-xs text-muted tabular-nums"><span>L {{ draft.lengthMm || '—' }} × W {{ draft.widthMm || '—' }} × H {{ draft.heightMm || '—' }} мм</span><div class="ml-auto flex flex-wrap gap-x-5 gap-y-2"><span v-for="item in areaRows" :key="item.label">{{ item.label }}: <strong class="font-medium text-ink">{{ item.value!==null ? item.value.toLocaleString('ru-RU',{minimumFractionDigits:3,maximumFractionDigits:3}) : '—' }} м²</strong></span></div></div>
     </section>
   </div>
   <details class="mt-4 rounded-lg border border-line bg-surface px-4 py-3 lg:ml-[336px]" :open="route.query.details === '1'"><summary class="w-fit cursor-pointer text-xs text-muted">Диагностика</summary><p class="pt-3 text-xs leading-relaxed text-muted">{{ confirmedProduction ? (confirmedProduction.review.join(' · ') || 'Известные ограничения выбранного маршрута проверены.') : 'Выберите маршрут. Незаданные ограничения оборудования требуют проверки.' }}</p></details>

@@ -22,7 +22,7 @@ function save() { if(result.value.errors.length) return; if(props.partKey) saved
 </script>
 <template>
   <div v-if="geo.parts" class="divide-y divide-line">
-    <div class="p-5"><h2 class="text-base font-semibold">Два отдельных изделия</h2><p class="mt-2 text-xs text-muted">Панели L и W раскладываются на разные листы. На короб нужны по 2 шт. каждой.</p><p class="mt-3 text-sm">Расход на короб: <strong>{{ totalArea===null ? 'сохраните обе раскладки' : fmt(totalArea)+' м²' }}</strong></p></div>
+    <div class="p-5"><h2 class="text-base font-semibold">Два отдельных изделия</h2><p class="mt-2 text-xs text-muted">Панели L и W раскладываются на разные листы. На короб нужны по 2 шт. каждой.</p><p class="mt-3 text-sm">Площадь комплекта короба · 2 L + 2 W: <strong>{{ totalArea===null ? 'сохраните обе раскладки' : fmt(totalArea)+' м²' }}</strong></p></div>
     <section v-for="part in geo.parts" :key="part.name"><h3 class="px-5 pt-5 text-sm font-semibold">{{ part.name }} · {{ part.quantity }} шт. на короб</h3><SheetLayout :geometry="part.geometry" :part-key="part.name" /></section>
   </div>
   <div v-else class="space-y-5 p-4 sm:p-5">
@@ -47,11 +47,12 @@ function save() { if(result.value.errors.length) return; if(props.partKey) saved
       <dl class="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4 tabular-nums">
         <div><dt class="text-muted">Заготовок на листе</dt><dd class="mt-1 text-sm font-semibold">{{ result.plan.count * (geo.parts ? 2 : 1) }}</dd></div>
         <div><dt class="text-muted">Площадь листа</dt><dd class="mt-1 text-sm font-medium">{{ fmt(x*y/1e6) }} м²</dd></div>
-        <div><dt class="text-muted">{{ geo.parts ? 'Расход на пару L + W' : 'Расход на заготовку' }}</dt><dd class="mt-1 text-sm font-medium">{{ fmt(x*y/result.plan.count/1e6,3) }} м²</dd></div>
+        <div><dt class="text-muted">{{ geo.count===2 ? 'Площадь одной половины · 1 шт.' : props.partKey ? 'Площадь панели · 1 шт.' : 'Расход на заготовку' }}</dt><dd class="mt-1 text-sm font-medium">{{ fmt(x*y/result.plan.count/1e6,3) }} м²</dd></div>
+        <div v-if="geo.count===2"><dt class="text-muted">Площадь комплекта короба · 2 шт.</dt><dd class="mt-1 text-sm font-semibold">{{ fmt(x*y/result.plan.count/1e6*2) }} м²</dd></div>
         <div><dt class="text-muted">Использование формата</dt><dd class="mt-1 text-sm font-medium">{{ fmt(result.plan.utilization*100,1) }}%</dd></div>
       </dl>
-      <p v-if="geo.count>1" class="text-xs text-muted">На короб: {{ geo.parts ? '2 панели L + 2 панели W' : 'две одинаковые половины' }}. {{ geo.parts ? 'Сетка размещает пары L + W. Расход на короб равен расходу на пару × 2.' : 'Расход на короб равен расходу на заготовку × 2.' }}</p>
-      <p class="text-[11px] text-muted">Использование рассчитано по прямоугольным габаритам развёртки. Поля слева / справа / сверху / снизу: {{ result.limits.left }} / {{ result.limits.right }} / {{ result.limits.top }} / {{ result.limits.bottom }} мм.</p>
+      <p v-if="geo.count>1" class="text-xs text-muted">На короб: {{ geo.parts ? '2 панели L + 2 панели W' : 'две одинаковые половины' }}. {{ geo.parts ? 'Сетка размещает пары L + W. Расход на короб равен расходу на пару × 2.' : 'Площадь комплекта равна площади одной половины × 2.' }}</p>
+      <p class="text-[11px] text-muted">Площадь на 1 шт. — площадь листа, разделённая на число заготовок. Использование рассчитано по прямоугольным габаритам развёртки. Поля слева / справа / сверху / снизу: {{ result.limits.left }} / {{ result.limits.right }} / {{ result.limits.top }} / {{ result.limits.bottom }} мм.</p>
     </template>
     <section v-if="!custom" class="border-t border-line pt-4">
       <h3 class="mb-3 text-sm font-semibold">Варианты · {{ variants.length }}</h3>
