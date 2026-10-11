@@ -1,9 +1,9 @@
 const {buildSync}=require('esbuild')
 const assert=require('node:assert/strict')
-const output=buildSync({stdin:{contents:"export {gridStripMeshGeometry} from './src/domain/gridScene'; export {calculateGrid} from './src/domain/grid'; export * as THREE from 'three'",resolveDir:process.cwd(),loader:'ts'},bundle:true,platform:'node',format:'cjs',write:false})
+const output=buildSync({stdin:{contents:"export {gridStripMeshGeometry,gridCameraTransition,gridCameraPose} from './src/domain/gridScene'; export {calculateGrid} from './src/domain/grid'; export * as THREE from 'three'",resolveDir:process.cwd(),loader:'ts'},bundle:true,platform:'node',format:'cjs',write:false})
 const result={exports:{}}
 new Function('require','module','exports',output.outputFiles[0].text)(require,result,result.exports)
-const {gridStripMeshGeometry,calculateGrid,THREE}=result.exports
+const {gridStripMeshGeometry,gridCameraTransition,gridCameraPose,calculateGrid,THREE}=result.exports
 const settings={rows:3,cols:5,heightMm:0,profile:'B',clearanceMm:5,productLengthMm:50,productWidthMm:60,productHeightMm:100,cellGapMm:1,slotMm:7,assembly:'auto'}
 for(const slot of [6,7]){
   const model=calculateGrid({}, {...settings,slotMm:slot})
@@ -33,3 +33,28 @@ for(const slot of [6,7]){
   }
 }
 console.log('3D strip bounds and actual top/bottom openings match 6/7 mm production geometry')
+
+const target=new THREE.Vector3(0,2,0)
+const poses=[new THREE.Vector3(1,.85,1),new THREE.Vector3(0,1,.001),new THREE.Vector3(0,.12,1),new THREE.Vector3(1,.12,0)].map(direction=>direction.normalize().multiplyScalar(12).add(target))
+for(const from of poses)for(const to of poses){
+  const transition=gridCameraTransition(from,to,target,target)
+  assert(gridCameraPose(transition,0).position.distanceTo(from)<1e-8)
+  assert(gridCameraPose(transition,1).position.distanceTo(to)<1e-8)
+  let previous=from
+  for(let i=0;i<=60;i++){
+    const pose=gridCameraPose(transition,i/60)
+    assert(Math.abs(pose.position.distanceTo(target)-12)<1e-8,'View changes must keep orbit distance instead of cutting through the object')
+    assert(pose.position.distanceTo(previous)<1,'No single-frame jump during view transitions')
+    const camera=new THREE.PerspectiveCamera(38,1.8,.05,200);camera.position.copy(pose.position);camera.lookAt(pose.target);camera.updateMatrixWorld()
+    const screen=target.clone().project(camera)
+    assert(Math.abs(screen.x)<1e-8&&Math.abs(screen.y)<1e-8,'The grid center must stay centered throughout the transition')
+    previous=pose.position
+  }
+}
+const westA=new THREE.Vector3().setFromSpherical(new THREE.Spherical(12,1,Math.PI-.01))
+const westB=new THREE.Vector3().setFromSpherical(new THREE.Spherical(12,1,-Math.PI+.01))
+const wrap=gridCameraTransition(westA,westB,new THREE.Vector3(),new THREE.Vector3())
+assert(Math.abs(wrap.end.theta-wrap.start.theta)<.021,'Yaw must cross the boundary along the short path')
+const inFlight=gridCameraPose(gridCameraTransition(poses[0],poses[1],target,target),.4)
+assert(gridCameraPose(gridCameraTransition(inFlight.position,poses[2],inFlight.target,target),0).position.distanceTo(inFlight.position)<1e-8,'Changing presets mid-flight must start at the current pose')
+console.log('Camera preset paths remain centered, smooth, constant-distance and continuous when interrupted')

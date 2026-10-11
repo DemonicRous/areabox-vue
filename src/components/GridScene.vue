@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { ArrowPathIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MinusIcon, PlusIcon, PauseIcon, PlayIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import type { GridStrip } from '../domain/grid'
-import { gridStripMeshGeometry } from '../domain/gridScene'
+import { gridStripMeshGeometry, gridCameraTransition, gridCameraPose } from '../domain/gridScene'
 const props=defineProps<{length:number;width:number;height:number;gridHeight:number;rows:number;cols:number;cellL:number;cellW:number;board:number;edgeTrim:number;strips:GridStrip[]}>()
 type View='perspective'|'top'|'front'|'side'
 type Product={mesh:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>;progress:number;delay:number;baseY:number;shadow:THREE.Mesh<THREE.PlaneGeometry,THREE.MeshBasicMaterial>}
@@ -26,7 +26,7 @@ const pointers=new Set<number>(),raycaster=new THREE.Raycaster(),pointer=new THR
 let targets:THREE.Mesh[]=[],products=new Map<number,Product>(),strips:THREE.Group[]=[],highlight:THREE.Mesh|undefined
 let productGeometry:THREE.BoxGeometry|undefined,contactTexture:THREE.CanvasTexture|undefined
 let assemblyTween:{from:number;to:number;start:number}|null=null
-let tween:{from:THREE.Vector3;to:THREE.Vector3;targetFrom:THREE.Vector3;targetTo:THREE.Vector3;start:number;duration:number}|null=null
+let tween:{orbit:ReturnType<typeof gridCameraTransition>;start:number;duration:number}|null=null
 const reduced=window.matchMedia('(prefers-reduced-motion: reduce)')
 function invalidate() { if(!frame&&!disposed&&visible&&!document.hidden&&renderer) frame=requestAnimationFrame(renderFrame) }
 function disposeGroup() {
@@ -46,16 +46,20 @@ function applyTheme() {
   if(floor)floor.material.color.setHex(dark?0x202a2c:0xe3e8e1)
   invalidate()
 }
-function moveCamera(position:THREE.Vector3,target:THREE.Vector3,duration=360) {
+function moveCamera(position:THREE.Vector3,target:THREE.Vector3,duration=520) {
   if(!camera||!controls)return
   rotating.value=false;controls.autoRotate=false
-  // Drain orbit inertia before a scripted transition, then let only the tween move the camera.
-  const damping=controls.enableDamping;controls.enableDamping=false;controls.update();controls.enableDamping=damping
+  // Clear pending input without applying its remaining inertia to the visible pose.
+  const positionBefore=camera.position.clone(),targetBefore=controls.target.clone()
+  const damping=controls.enableDamping,minDistance=controls.minDistance,maxDistance=controls.maxDistance
+  controls.enableDamping=false;controls.minDistance=0;controls.maxDistance=Infinity;controls.update()
+  camera.position.copy(positionBefore);controls.target.copy(targetBefore);controls.update()
+  controls.enableDamping=damping;controls.minDistance=minDistance;controls.maxDistance=maxDistance
   if(reduced.matches||!ready.value){camera.position.copy(position);controls.target.copy(target);controls.update();tween=null}
-  else tween={from:camera.position.clone(),to:position,targetFrom:controls.target.clone(),targetTo:target,start:performance.now(),duration}
+  else tween={orbit:gridCameraTransition(camera.position,position,controls.target,target),start:performance.now(),duration}
   invalidate()
 }
-function setView(next:View,duration=360) {
+function setView(next:View,duration=520) {
   if(!camera||!controls)return
   view.value=next
   const height=Math.max(props.height,props.gridHeight)*unit+(exploded.value?props.gridHeight*unit+1.2:0)
@@ -182,6 +186,7 @@ function rebuild() {
   productGeometry=new THREE.BoxGeometry(props.length*unit,props.height*unit,props.width*unit)
   occupied.value.forEach(index=>addProduct(index))
   assembly=exploded.value?1:0;assemblyTween=null;strips.forEach(part=>{part.position.y=part.userData.lift*assembly})
+  if(renderer)renderer.shadowMap.needsUpdate=true
   updateHighlight();applyTheme();setView(view.value??'perspective');invalidate()
 }
 function renderFrame(time:number) {
@@ -190,8 +195,9 @@ function renderFrame(time:number) {
   const dt=Math.min(.05,(time-lastTime)/1000||.016);lastTime=time
   let moving=false
   if(tween){
-    const progress=reduced.matches?1:Math.min(1,(time-tween.start)/tween.duration),ease=progress*progress*(3-2*progress)
-    camera.position.lerpVectors(tween.from,tween.to,ease);controls.target.lerpVectors(tween.targetFrom,tween.targetTo,ease)
+    const progress=reduced.matches?1:Math.min(1,(time-tween.start)/tween.duration)
+    const pose=gridCameraPose(tween.orbit,progress)
+    camera.position.copy(pose.position);controls.target.copy(pose.target)
     camera.lookAt(controls.target)
     if(progress===1){
       tween=null
@@ -203,6 +209,7 @@ function renderFrame(time:number) {
     const ease=progress*progress*progress*(progress*(progress*6-15)+10)
     assembly=THREE.MathUtils.lerp(assemblyTween.from,assemblyTween.to,ease)
     strips.forEach(part=>{part.position.y=part.userData.lift*assembly})
+    renderer.shadowMap.needsUpdate=true
     if(progress===1)assemblyTween=null;else moving=true
   }
   products.forEach((product,index)=>{
@@ -241,7 +248,7 @@ watch(()=>[props.length,props.width,props.height,props.gridHeight,props.rows,pro
 onMounted(()=>{
   try{
     scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(38,1,.05,200)
-    renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace
+    renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.autoUpdate=false;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace
     // Backing-buffer resolution is DPR-scaled; layout dimensions remain those of the host.
     renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';renderer.domElement.style.display='block'
     host.value!.appendChild(renderer.domElement)
