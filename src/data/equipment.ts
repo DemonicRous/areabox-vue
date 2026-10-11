@@ -45,7 +45,7 @@ export function createInlineTemplate(model: string): EquipmentParameterGroup[] {
       { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
     ] },
   ]
-  if (model === '5PA') {
+  if (model === '5PA' || model === '9PA-2') {
     const values: Record<string, string> = {
       profiles: 'D · B · C · BF · BD · BE · BC',
       designs: '4-клапанные короба с биговками на одном уровне',
