@@ -19,8 +19,10 @@ export const printingCuttingCompatibility = {
   digital: ['plotter'],
 } as const
 
+export const digitalPrintingAreaAllowance = { x: 100, y: 100 } as const
+
 export function createPrintingTemplate(name: 'Pinlong' | 'Цифровая печать'): EquipmentParameterGroup[] {
-  return [
+  const groups: EquipmentParameterGroup[] = [
     { id: 'general', title: 'Общие сведения', parameters: [
       { id: 'name', label: 'Название', format: 'text', value: name },
       { id: 'model', label: 'Модель', format: 'text' },
@@ -42,6 +44,27 @@ export function createPrintingTemplate(name: 'Pinlong' | 'Цифровая пе�
       { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
     ] },
   ]
+  if (name === 'Цифровая печать') {
+    const values: Record<string, string> = {
+      name: 'Hanway',
+      profiles: profiles.join(' · '),
+      sheetX: '100 / 2500',
+      sheetY: '100 / 1600',
+      fluteDirection: 'X — поперёк гофры, Y — вдоль гофры',
+      printSide: 'Любая сторона, включая печать с двух сторон',
+    }
+    for (const group of groups) {
+      for (const parameter of group.parameters) {
+        if (values[parameter.id] !== undefined) parameter.value = values[parameter.id]
+      }
+    }
+    groups.splice(3, 0, { id: 'area', title: 'Запас для расчёта площади', parameters: [
+      { id: 'areaAllowanceX', label: 'Прибавка к размеру развёртки · X', format: 'number', unit: 'мм', value: String(digitalPrintingAreaAllowance.x) },
+      { id: 'areaAllowanceY', label: 'Прибавка к размеру развёртки · Y', format: 'number', unit: 'мм', value: String(digitalPrintingAreaAllowance.y) },
+      { id: 'areaFormula', label: 'Площадь с запасом (X и Y в мм)', format: 'text', value: '(X + 100) × (Y + 100) / 1 000 000 м²' },
+    ] })
+  }
+  return groups
 }
 
 export const asahiTemplate: EquipmentParameterGroup[] = [
