@@ -17,31 +17,15 @@ export interface EquipmentParameterGroup {
 export const kongsbergTemplate: EquipmentParameterGroup[] = [
   { id: 'general', title: 'Общие сведения', parameters: [
     { id: 'name', label: 'Название', format: 'text', value: 'Kongsberg' },
-    { id: 'model', label: 'Модель', format: 'text' },
-    { id: 'profiles', label: 'Доступные профили картона', format: 'text' },
+    { id: 'model', label: 'Модель', format: 'text', value: 'X44' },
+    { id: 'profiles', label: 'Доступные профили картона', format: 'text', value: profiles.join(' · ') },
   ] },
   { id: 'format', title: 'Формат и рабочее поле', parameters: [
-    { id: 'sheetX', label: 'Размер листа · X', format: 'range', unit: 'мм' },
-    { id: 'sheetY', label: 'Размер листа · Y', format: 'range', unit: 'мм' },
-    { id: 'workingX', label: 'Рабочее поле · X', format: 'number', unit: 'мм' },
-    { id: 'workingY', label: 'Рабочее поле · Y', format: 'number', unit: 'мм' },
-    { id: 'fluteDirection', label: 'Направление гофры относительно X / Y', format: 'text' },
-  ] },
-  { id: 'processing', title: 'Резка и биговка', parameters: [
-    { id: 'thickness', label: 'Толщина материала', format: 'range', unit: 'мм' },
-    { id: 'cuttingTool', label: 'Инструмент резки', format: 'text' },
-    { id: 'creasingTool', label: 'Инструмент биговки', format: 'text' },
-    { id: 'cutTolerance', label: 'Точность реза', format: 'number', unit: '± мм' },
-    { id: 'creaseTolerance', label: 'Точность биговки', format: 'number', unit: '± мм' },
-  ] },
-  { id: 'layout', title: 'Поля и раскладка', parameters: [
-    { id: 'marginLeft', label: 'Поле слева', format: 'number', unit: 'мм' },
-    { id: 'marginRight', label: 'Поле справа', format: 'number', unit: 'мм' },
-    { id: 'marginTop', label: 'Поле сверху', format: 'number', unit: 'мм' },
-    { id: 'marginBottom', label: 'Поле снизу', format: 'number', unit: 'мм' },
-    { id: 'gap', label: 'Минимальный зазор между деталями', format: 'number', unit: 'мм' },
-    { id: 'rotation', label: 'Допустимый поворот заготовки', format: 'text' },
-    { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
+    { id: 'sheetX', label: 'Размер листа · X', format: 'range', unit: 'мм', value: '100 / 2500' },
+    { id: 'sheetY', label: 'Размер листа · Y', format: 'range', unit: 'мм', value: '100 / 1600' },
+    { id: 'workingX', label: 'Рабочее поле · X', format: 'number', unit: 'мм', value: '2460' },
+    { id: 'workingY', label: 'Рабочее поле · Y', format: 'number', unit: 'мм', value: '1560' },
+    { id: 'fluteDirection', label: 'Направление гофры относительно X / Y', format: 'text', value: 'X — поперёк гофры, Y — вдоль гофры' },
   ] },
 ]
 
