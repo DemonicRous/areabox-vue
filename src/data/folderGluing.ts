@@ -5,7 +5,7 @@ export function createFolderGluingTemplate(name: string): EquipmentParameterGrou
   const values: Record<string, string> = name === 'SIGNATURE ELITE-135'
     ? { sheetX: '150 / 1350', sheetY: '120 / 1000', panelL: '50 / —', panelW: '30 / —', bodyH: '65 / —' }
     : name === 'RITO JH-1700'
-      ? { sheetX: '420 / 1700', sheetY: '180 / 1300' }
+      ? { sheetX: '420 / 1700', sheetY: '180 / 1300', bodyH: '50 / —' }
       : { sheetX: '280 / 1100', sheetY: '— / 800', bodyH: '70 / 800', panelL: '130 / —', panelW: '130 / —' }
 
   return [
