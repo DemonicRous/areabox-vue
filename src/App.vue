@@ -11,7 +11,7 @@ function focusWorkspace() { document.getElementById('workspace')?.focus() }
       <div class="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-8 gap-y-2 px-4 py-3 sm:px-6 lg:px-8">
         <RouterLink to="/" class="flex items-center gap-2 text-base font-semibold tracking-tight" aria-label="AreaBOX, главная"><AppIcon name="box" class="text-accent" />AreaBOX</RouterLink>
         <nav aria-label="Основная навигация" class="order-3 flex w-full gap-1 sm:order-none sm:w-auto">
-          <RouterLink v-for="section in sections" :key="section.path" :to="section.path" class="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold transition-colors hover:bg-canvas sm:flex-none" active-class="bg-accent-soft text-accent"><AppIcon :name="section.icon" class="size-4" /><span>{{ section.title }}</span></RouterLink>
+          <RouterLink v-for="section in sections" :key="section.path" :to="section.path" class="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-2 text-xs font-semibold transition-colors hover:bg-canvas sm:flex-none sm:px-3 sm:text-sm" active-class="bg-accent-soft text-accent"><AppIcon :name="section.icon" class="hidden size-4 sm:block" /><span>{{ section.title }}</span></RouterLink>
         </nav>
         <div class="ml-auto"><ThemeSwitch /></div>
       </div>
