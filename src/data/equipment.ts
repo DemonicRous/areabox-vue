@@ -33,11 +33,17 @@ export function createPrintingTemplate(name: 'Pinlong' | 'Цифровая пе�
       { id: 'sheetY', label: 'Заготовка · Y', format: 'range', unit: 'мм' },
       { id: 'fluteDirection', label: 'Направление гофры относительно X / Y', format: 'text' },
     ] },
+    { id: 'layout', title: 'Рабочее поле и раскладка', parameters: [
+      { id: 'workingX', label: 'Рабочее поле · X (расчётное)', format: 'number', unit: 'мм' },
+      { id: 'workingY', label: 'Рабочее поле · Y (расчётное)', format: 'number', unit: 'мм' },
+      { id: 'marginLeft', label: 'Поле слева', format: 'number', unit: 'мм' },
+      { id: 'marginRight', label: 'Поле справа', format: 'number', unit: 'мм' },
+      { id: 'marginTop', label: 'Поле сверху', format: 'number', unit: 'мм' },
+      { id: 'marginBottom', label: 'Поле снизу', format: 'number', unit: 'мм' },
+    ] },
     { id: 'printing', title: 'Параметры печати', parameters: [
       { id: 'printColors', label: 'Количество цветов печати', format: 'number' },
       { id: 'printSide', label: 'Сторона печати', format: 'text' },
-      { id: 'workingX', label: 'Поле печати · X', format: 'number', unit: 'мм' },
-      { id: 'workingY', label: 'Поле печати · Y', format: 'number', unit: 'мм' },
     ] },
     { id: 'routing', title: 'Последующая обработка', parameters: [
       { id: 'cuttingEquipment', label: 'Оборудование для вырезки после печати', format: 'text', value: name === 'Pinlong' ? 'Любое: инлайн, плоская и ротационная высечка, плоттер' : 'Только плоттер' },
@@ -58,7 +64,7 @@ export function createPrintingTemplate(name: 'Pinlong' | 'Цифровая пе�
         if (values[parameter.id] !== undefined) parameter.value = values[parameter.id]
       }
     }
-    groups.splice(3, 0, { id: 'area', title: 'Запас для расчёта площади', parameters: [
+    groups.splice(4, 0, { id: 'area', title: 'Запас для расчёта площади', parameters: [
       { id: 'areaAllowanceX', label: 'Прибавка к размеру развёртки · X', format: 'number', unit: 'мм', value: String(digitalPrintingAreaAllowance.x) },
       { id: 'areaAllowanceY', label: 'Прибавка к размеру развёртки · Y', format: 'number', unit: 'мм', value: String(digitalPrintingAreaAllowance.y) },
       { id: 'areaFormula', label: 'Площадь с запасом (X и Y в мм)', format: 'text', value: '(X + 100) × (Y + 100) / 1 000 000 м²' },
