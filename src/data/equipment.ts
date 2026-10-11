@@ -21,6 +21,32 @@ export const printingCuttingCompatibility = {
 
 export const digitalPrintingAreaAllowance = { x: 100, y: 100 } as const
 
+export function createFolderGluingTemplate(name: string): EquipmentParameterGroup[] {
+  return [
+    { id: 'general', title: 'Общие сведения', parameters: [
+      { id: 'name', label: 'Название линии', format: 'text', value: name },
+      { id: 'profiles', label: 'Доступные профили картона', format: 'text' },
+      { id: 'designs', label: 'Доступные конструкции', format: 'text' },
+    ] },
+    { id: 'feed', title: 'Формат подачи', parameters: [
+      { id: 'sheetX', label: 'Заготовка · X', format: 'range', unit: 'мм' },
+      { id: 'sheetY', label: 'Заготовка · Y', format: 'range', unit: 'мм' },
+      { id: 'fluteDirection', label: 'Направление гофры относительно X / Y', format: 'text' },
+    ] },
+    { id: 'box', title: 'Размеры и ограничения', parameters: [
+      { id: 'panelL', label: 'Панель L между биговками', format: 'range', unit: 'мм' },
+      { id: 'panelW', label: 'Панель W между биговками', format: 'range', unit: 'мм' },
+      { id: 'bodyH', label: 'Корпус H между биговками', format: 'range', unit: 'мм' },
+      { id: 'jointFlap', label: 'Соединительный клапан', format: 'range', unit: 'мм' },
+    ] },
+    { id: 'gluing', title: 'Параметры склейки', parameters: [
+      { id: 'gluingModes', label: 'Типы склейки', format: 'text' },
+      { id: 'glueType', label: 'Тип клея', format: 'text' },
+      { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
+    ] },
+  ]
+}
+
 export const gerunTemplate: EquipmentParameterGroup[] = [
   { id: 'general', title: 'Общие сведения', parameters: [
     { id: 'name', label: 'Производитель', format: 'text', value: 'Gerun' },
