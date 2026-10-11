@@ -74,10 +74,10 @@ onUnmounted(() => document.removeEventListener('pointerdown', outside))
       <ChevronDownIcon class="size-4 shrink-0 text-muted transition-transform motion-reduce:transition-none" :class="{ 'rotate-180': opened }" aria-hidden="true" />
     </button>
     <div v-if="opened" class="absolute inset-x-0 top-full z-30 mt-2 overflow-hidden rounded-lg border border-line bg-surface">
-      <div v-if="columns" class="grid grid-cols-[3rem_1fr_1fr_1rem] gap-2 border-b border-line bg-canvas px-3 py-2 text-[11px] text-muted" aria-hidden="true"><span>Профиль</span><span v-for="column in columns" :key="column">{{ column }}</span><span /></div>
+      <div v-if="columns" class="grid grid-cols-[3rem_1fr_1fr_1rem] gap-2 border-b border-line bg-canvas px-3 py-2 text-center text-[11px] text-muted" aria-hidden="true"><span>Профиль</span><span v-for="column in columns" :key="column">{{ column }}</span><span /></div>
       <ul :id="`${id}-list`" role="listbox" :aria-labelledby="`${id}-label`" class="max-h-72 overflow-y-auto overscroll-contain p-1">
         <li v-for="(option, index) in options" :id="`${id}-option-${index}`" :key="option.value" role="option" :aria-selected="model === option.value" class="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm" :class="active === index ? 'bg-accent-soft text-ink' : 'text-ink hover:bg-canvas'" @pointermove="active = index" @pointerdown.prevent @click="select(index)">
-          <span v-if="columns" class="grid min-w-0 flex-1 grid-cols-[3rem_1fr_1fr] gap-2"><span class="font-semibold">{{ option.label }}</span><span v-for="(cell, cellIndex) in option.cells" :key="cellIndex" class="tabular-nums">{{ cell }}</span></span>
+          <span v-if="columns" class="grid min-w-0 flex-1 grid-cols-[3rem_1fr_1fr] gap-2 text-center"><span class="font-semibold">{{ option.label }}</span><span v-for="(cell, cellIndex) in option.cells" :key="cellIndex" class="tabular-nums">{{ cell }}</span></span>
           <span v-else class="min-w-0 flex-1 py-0.5"><span class="block font-medium tabular-nums">{{ option.label }}</span><span class="mt-1 block text-xs text-muted">{{ option.description }}</span></span>
           <CheckIcon class="size-4 shrink-0 text-accent" :class="{ invisible: model !== option.value }" aria-hidden="true" />
         </li>
