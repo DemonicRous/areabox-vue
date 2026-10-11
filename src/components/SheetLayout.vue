@@ -50,7 +50,7 @@ function save() { if(!result.value.errors.length) savedLayout.value={...result.v
       <p v-if="!variants.length" class="text-xs text-muted">Допустимых автоматических раскладок нет. Проверьте маршрут или задайте лист вручную.</p>
       <div class="grid gap-2 sm:grid-cols-2">
         <button v-for="(plan,index) in variants.slice(0,12)" :key="`${plan.cols}-${plan.rows}`" type="button" class="min-h-16 cursor-pointer rounded-md border px-3 py-3 text-left" :class="cols===plan.cols && rows===plan.rows && x===plan.sheetX && y===plan.sheetY ? 'border-accent bg-accent-soft' : 'border-line hover:bg-canvas'" :aria-pressed="cols===plan.cols && rows===plan.rows && x===plan.sheetX && y===plan.sheetY" @click="choose(plan)">
-          <span class="flex items-baseline justify-between gap-2 text-sm font-medium"><span>{{ plan.cols }} × {{ plan.rows }} · {{ plan.count }} заготовок</span><span v-if="index===0" class="text-[11px] text-accent">{{ result.limits.tech==='plotter' ? 'Стандартный лист' : 'Минимальный расход' }}</span></span>
+          <span class="flex items-baseline justify-between gap-2 text-sm font-medium"><span>{{ plan.cols }} × {{ plan.rows }} · {{ plan.count }} заготовок</span><span v-if="index===0" class="text-[11px] text-accent">{{ result.limits.tech==='plotter' && productionSelection.printing!=='digital' ? 'Стандартный лист' : 'Минимальный расход' }}</span></span>
           <span class="mt-1 block text-xs text-muted tabular-nums">{{ plan.sheetX }} × {{ plan.sheetY }} мм · {{ fmt(plan.sheetX*plan.sheetY/plan.count/1e6,4) }} м² / шт.</span>
         </button>
       </div>

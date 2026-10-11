@@ -26,7 +26,14 @@ const plotter={printing:'digital',cutting:'kongsberg',finishing:'manual-gluing'}
 assert.equal(layoutLimits(plotter).left,50)
 assert.equal(layoutLimits(plotter).top,50)
 assert(layoutVariants(digital,plotter,geometry(digital,'plotter',plotter.finishing)).length>0)
-const standardPlotter=layoutVariants(digital,plotter,geometry(digital,'plotter',plotter.finishing))
+const digitalPlans=layoutVariants(digital,plotter,geometry(digital,'plotter',plotter.finishing))
+assert(digitalPlans.some(plan=>plan.sheetX<2500 || plan.sheetY<1600))
+for(const plan of digitalPlans) {
+  const blank=geometry(digital,'plotter',plotter.finishing)
+  assert(plan.sheetX>=plan.cols*blank.width+100)
+  assert(plan.sheetY>=plan.rows*blank.height+100)
+}
+const standardPlotter=layoutVariants(box,{...plotter,printing:''},geometry(box,'plotter',plotter.finishing))
 assert.equal(standardPlotter.length,1)
 assert.equal(standardPlotter[0].sheetX,2500)
 assert.equal(standardPlotter[0].sheetY,1600)
