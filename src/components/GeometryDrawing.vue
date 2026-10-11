@@ -35,15 +35,12 @@ const detailYRight = computed(() => detailRight.value >= detailLeft.value ? 130 
           <text :x="(segment.start+segment.end)/2" :y="geometry.height/2+font*.34" :font-size="font" text-anchor="middle" fill="var(--accent)">{{ index+1 }}</text>
         </g>
         <line v-for="(fold,index) in geometry.folds" :key="index" :x1="fold[0]" :y1="fold[1]" :x2="fold[2]" :y2="fold[3]" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" />
-        <g v-for="(segment,index) in panels" :key="index">
+        <g v-for="(segment,index) in [{ start: 0, end: geometry.flap, value: geometry.flap }, ...panels]" :key="index">
           <path :d="`M${segment.start} ${-pad*.08} V${-pad*.58} M${segment.end} ${-pad*.08} V${-pad*.58} M${segment.start} ${-pad*.4} H${segment.end}`" fill="none" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
           <path :d="`M${segment.start-pad*.03} ${-pad*.34} l${pad*.06} ${-pad*.12} M${segment.end-pad*.03} ${-pad*.34} l${pad*.06} ${-pad*.12}`" fill="none" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
           <text :x="(segment.start+segment.end)/2" :y="-pad*.62" :font-size="font" text-anchor="middle" fill="var(--ink)">{{ fmt(segment.value) }}</text>
         </g>
-        <g aria-label="Ширина соединительного клапана">
-          <path :d="`M0 ${geometry.height*.5} H${geometry.flap} M${-pad*.03} ${geometry.height*.5+pad*.06} l${pad*.06} ${-pad*.12} M${geometry.flap-pad*.03} ${geometry.height*.5+pad*.06} l${pad*.06} ${-pad*.12} M${geometry.flap/2} ${geometry.height*.5} V${geometry.height*.5+pad*.33} H${geometry.flap+pad*.25}`" fill="none" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
-          <text :x="geometry.flap+pad*.3" :y="geometry.height*.5+pad*.33+font*.34" :font-size="font*.85" fill="var(--ink)">Клапан {{ geometry.flap }} мм</text>
-        </g>
+
         <path :d="`M0 ${geometry.height+pad*.1} V${geometry.height+pad*.62} M${geometry.width} ${geometry.height+pad*.1} V${geometry.height+pad*.62} M0 ${geometry.height+pad*.43} H${geometry.width}`" fill="none" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
         <path :d="`M${-pad*.03} ${geometry.height+pad*.49} l${pad*.06} ${-pad*.12} M${geometry.width-pad*.03} ${geometry.height+pad*.49} l${pad*.06} ${-pad*.12}`" fill="none" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
         <text :x="geometry.width/2" :y="geometry.height+pad*.78" :font-size="font" text-anchor="middle" fill="var(--ink)">X = {{ fmt(geometry.width) }}</text>
