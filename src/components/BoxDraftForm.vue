@@ -22,14 +22,15 @@ const errors = computed(() => {
 </script>
 
 <template>
-  <section class="panel">
-    <div class="panel-heading"><span class="step">01</span><h2>Параметры короба</h2></div>
-    <label>Конструкция<select v-model="draft.design"><option v-for="design in designs" :key="design.id" :value="design.id">{{ design.title }}</option></select></label>
-    <div class="dimensions">
-      <label v-for="field in dimensions" :key="field.key">{{ field.label }}<span class="input-wrap"><input v-model.number="draft[field.key]" type="number" :min="field.min" max="2500" step="1" /><span>мм</span></span></label>
+  <section class="rounded-xl border border-line bg-surface p-4 sm:p-5" aria-labelledby="box-parameters">
+    <h2 id="box-parameters" class="mb-5 text-sm font-semibold">Параметры</h2>
+    <div class="space-y-5">
+      <label class="field">Конструкция<select v-model="draft.design" class="control"><option v-for="design in designs" :key="design.id" :value="design.id">{{ design.title }}</option></select></label>
+      <fieldset><legend class="mb-2 text-xs font-medium text-muted">Размеры, мм</legend><div class="grid grid-cols-3 gap-2">
+        <label v-for="field in dimensions" :key="field.key" class="field">{{ field.label }}<input v-model.number="draft[field.key]" class="control tabular-nums" type="number" inputmode="decimal" :min="field.min" max="2500" step="1" :aria-invalid="typeof draft[field.key] !== 'number' || draft[field.key] < field.min || draft[field.key] > 2500 || (field.key === 'widthMm' && draft.widthMm > draft.lengthMm)" :aria-describedby="errors.length ? 'box-errors' : undefined" /></label>
+      </div></fieldset>
+      <label class="field">Профиль<select v-model="draft.profile" class="control"><option v-for="profile in profiles" :key="profile">{{ profile }}</option></select></label>
+      <ul v-if="errors.length" id="box-errors" class="space-y-1 text-xs leading-relaxed text-danger" role="alert"><li v-for="error in errors" :key="error">{{ error }}</li></ul>
     </div>
-    <label>Профиль картона<select v-model="draft.profile"><option v-for="profile in profiles" :key="profile">{{ profile }}</option></select></label>
-    <ul v-if="errors.length" class="errors" role="alert"><li v-for="error in errors" :key="error">{{ error }}</li></ul>
-    <p class="form-note">Размеры сохраняются при переходе между разделами текущей сессии.</p>
   </section>
 </template>

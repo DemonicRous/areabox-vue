@@ -1,26 +1,34 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import BoxDraftForm from '../components/BoxDraftForm.vue'
+import AppIcon from '../components/AppIcon.vue'
+import { useBoxDraft } from '../composables/useBoxDraft'
 const route = useRoute()
-const milestones = ['Геометрия и формулы', 'Паспорта и ограничения', 'Раскладка и расход материала', 'Экспорт SVG / DXF']
+const router = useRouter()
+const draft = useBoxDraft()
+const views = [
+  { id: 'drawing', title: 'Чертёж', icon: 'drawing', empty: 'Расчётный чертёж ещё не подключён' },
+  { id: 'layout', title: 'Раскладка', icon: 'layout', empty: 'Расчёт раскладки ещё не подключён' },
+  { id: 'route', title: 'Маршрут', icon: 'route', empty: 'Подбор оборудования ещё не подключён' },
+] as const
+const selected = computed(() => views.find(view => view.id === route.query.view) ?? views[0])
+function changeView(id: string) { router.replace({ path: '/', query: { ...route.query, view: id === 'drawing' ? undefined : id } }) }
 </script>
-
 <template>
-  <div class="intro"><p class="eyebrow">РАБОЧАЯ ОБЛАСТЬ / {{ route.meta.title }}</p><h1>{{ route.meta.heading }}</h1><p>{{ route.meta.description }}</p></div>
-  <div v-if="route.path === '/'" class="workspace">
+  <div class="mb-5 flex items-center justify-between gap-4"><h1 class="text-lg font-semibold">Короб</h1><span class="text-xs text-muted">FEFCO {{ draft.design }} · {{ draft.profile }}</span></div>
+  <div class="grid items-start gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
     <BoxDraftForm />
-    <section class="drawing-panel">
-      <div class="panel-heading"><span class="step">02</span><h2>Чертёж развёртки</h2><span class="badge">Следующий этап</span></div>
-      <div class="drawing-placeholder">
-        <svg viewBox="0 0 580 270" role="img" aria-label="Условная схема развёртки, не расчётный чертёж">
-          <path d="M45 95 L70 85 V35 H540 V235 H70 V185 L45 175 Z" fill="#f8faf7" stroke="#3b5b49" stroke-width="2" />
-          <path d="M70 85 H540 M70 185 H540 M70 85 V185 M210 35 V235 M305 35 V235 M445 35 V235" fill="none" stroke="#b1714b" stroke-width="1.5" stroke-dasharray="7 5" />
-        </svg>
-        <p>Место для расчётного чертежа</p><small>Геометрия подключается отдельным модулем.</small>
+    <section class="min-w-0 overflow-hidden rounded-xl border border-line bg-surface" aria-label="Результат">
+      <div class="flex flex-wrap items-center gap-2 border-b border-line px-2 py-2 sm:px-3">
+        <nav aria-label="Вид результата" class="flex min-w-0 gap-1">
+          <button v-for="view in views" :key="view.id" type="button" :aria-pressed="selected.id === view.id" class="flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs transition-colors hover:bg-canvas sm:gap-2 sm:px-3 sm:text-sm" :class="selected.id === view.id ? 'bg-accent-soft font-medium text-accent' : 'text-muted'" @click="changeView(view.id)"><AppIcon :name="view.icon" class="hidden size-4 sm:block" />{{ view.title }}</button>
+        </nav>
+        <span class="ml-auto hidden text-xs text-muted sm:block">мм</span>
       </div>
-      <p class="form-note">Условная схема показывает назначение раздела. Расчёт площади пока не подключён.</p>
+      <div :key="selected.id" class="flex min-h-72 flex-col items-center justify-center gap-3 px-5 py-14 text-center sm:min-h-[420px] lg:min-h-[540px]" role="status"><AppIcon :name="selected.icon" class="size-8 text-muted" /><p class="text-sm text-muted">{{ selected.empty }}</p></div>
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line px-4 py-3 text-xs text-muted tabular-nums"><span>L {{ draft.lengthMm || '—' }} × W {{ draft.widthMm || '—' }} × H {{ draft.heightMm || '—' }} мм</span><span class="ml-auto">Площадь: — м²</span></div>
     </section>
   </div>
-  <section v-else class="panel empty-panel"><span class="step">В РАЗРАБОТКЕ</span><h2>{{ route.meta.heading }}</h2><p>Раздел подготовлен для переноса и проверки логики AreaBOX.</p><RouterLink to="/">← К параметрам короба</RouterLink></section>
-  <section class="roadmap"><div><p class="eyebrow">ОСНОВА ГОТОВА</p><h2>Дальше — расчётное ядро</h2><p>Перенос логики по этапам с проверкой формул и единиц.</p></div><ol><li v-for="(milestone, index) in milestones" :key="milestone"><span>0{{ index + 1 }}</span>{{ milestone }}</li></ol></section>
+  <details class="mt-4 rounded-lg border border-line bg-surface px-4 py-3 lg:ml-[336px]" :open="route.query.details === '1'"><summary class="w-fit cursor-pointer text-xs text-muted">Диагностика</summary><p class="pt-3 text-xs leading-relaxed text-muted">Расчётное ядро не подключено.</p></details>
 </template>
