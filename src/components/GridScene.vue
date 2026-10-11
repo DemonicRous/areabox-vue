@@ -9,10 +9,9 @@ import ProductModelPicker from './ProductModelPicker.vue'
 import { productModels } from '../data/productModels'
 import { fitProductModel } from '../domain/productModel'
 import { loadProductModel } from '../domain/loadProductModel'
-import { gridProductModel, gridEnvironment } from '../composables/useGridDraft'
-const modelLoading=ref(false),modelError=ref(''),skyLoading=ref(false),skyError=ref('')
-const environments=[{id:'studio',label:'Студия'},{id:'day',label:'День'},{id:'morning',label:'Утро'},{id:'night',label:'Ночь'},{id:'space',label:'Космос'},{id:'alien',label:'Другое небо'}]
-let modelSource:THREE.Group|null=null,modelRequest=0,skyRequest=0,skyTexture:THREE.Texture|null=null
+import { gridProductModel } from '../composables/useGridDraft'
+const modelLoading=ref(false),modelError=ref('')
+let modelSource:THREE.Group|null=null,modelRequest=0
 const props=defineProps<{length:number;width:number;height:number;gridHeight:number;rows:number;cols:number;cellL:number;cellW:number;board:number;edgeTrim:number;strips:GridStrip[]}>()
 type View='perspective'|'top'|'front'|'side'
 type Product={mesh:THREE.Group;materials:THREE.Material[];progress:number;delay:number;baseY:number;shadow:THREE.Mesh<THREE.PlaneGeometry,THREE.MeshBasicMaterial>}
@@ -50,9 +49,9 @@ function disposeGroup() {
 function applyTheme() {
   if(!scene||!renderer)return
   const dark=document.documentElement.classList.contains('dark')
-  scene.background=skyTexture??new THREE.Color(dark?0x151c20:0xf2f4f1)
+  scene.background=new THREE.Color(dark?0x151c20:0xf2f4f1)
   const floor=group?.getObjectByName('floor') as THREE.Mesh<THREE.PlaneGeometry,THREE.MeshStandardMaterial>|undefined
-  if(floor){floor.scale.set(skyTexture?totalX*unit*1.35/80:1,skyTexture?totalZ*unit*1.35/80:1,1);floor.material.color.setHex(dark?0x202a2c:0xe3e8e1)}
+  if(floor){floor.material.color.setHex(dark?0x202a2c:0xe3e8e1)}
   invalidate()
 }
 function moveCamera(position:THREE.Vector3,target:THREE.Vector3,duration=520) {
@@ -104,12 +103,6 @@ async function changeProduct(){
   try{const source=item.asset?await loadProductModel(`${import.meta.env.BASE_URL}models/products/${item.asset}`):null;if(disposed||request!==modelRequest)return;modelSource=source;replaceProducts()}
   catch{if(disposed||request!==modelRequest)return;modelSource=null;replaceProducts();modelError.value='Не удалось загрузить модель. Используется коробочка.'}
   finally{if(request===modelRequest&&!disposed)modelLoading.value=false}
-}
-async function changeEnvironment(){
-  const request=++skyRequest,id=gridEnvironment.value;skyError.value='';skyLoading.value=id!=='studio'
-  try{const texture=id==='studio'?null:await new THREE.TextureLoader().loadAsync(`${import.meta.env.BASE_URL}skyboxes/skybox-${id}.png`);if(disposed||request!==skyRequest){texture?.dispose();return}if(texture){texture.mapping=THREE.EquirectangularReflectionMapping;texture.colorSpace=THREE.SRGBColorSpace}skyTexture?.dispose();skyTexture=texture;applyTheme()}
-  catch{if(!disposed&&request===skyRequest)skyError.value='Не удалось загрузить окружение.'}
-  finally{if(!disposed&&request===skyRequest)skyLoading.value=false}
 }
 function addProduct(index:number,delay=0){
   if(products.has(index)||!group||!productTemplate)return
@@ -275,7 +268,6 @@ function onReduced(){if(reduced.matches)rotating.value=false;invalidate()}
 // until release so highlighting never falls back to a previously selected cell.
 function onControlStart(){tween=null;view.value=null;rotating.value=false;invalidate()}
 watch(gridProductModel,changeProduct)
-watch(gridEnvironment,changeEnvironment)
 watch([active,hasActiveCell],updateHighlight)
 watch(exploded,()=>{assemblyTween={from:assembly,to:exploded.value?1:0,start:performance.now()};hovered.value=null;updateHighlight();setView(view.value??'perspective',620);invalidate()})
 watch(rotating,value=>{if(controls){controls.autoRotate=value;controls.autoRotateSpeed=.8;if(value)view.value=null;invalidate()}})
@@ -301,7 +293,6 @@ onMounted(()=>{
     canvas.addEventListener('pointerdown',onDown);canvas.addEventListener('pointermove',onMove);canvas.addEventListener('pointerup',onUp);canvas.addEventListener('pointercancel',onCancel);canvas.addEventListener('pointerleave',onLeave)
     resize();rebuild();ready.value=true
     if(gridProductModel.value!=='box')void changeProduct()
-    if(gridEnvironment.value!=='studio')void changeEnvironment()
     resizeObserver=new ResizeObserver(resize);resizeObserver.observe(host.value!)
     themeObserver=new MutationObserver(applyTheme);themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['class']})
     intersection=new IntersectionObserver(entries=>{visible=!!entries[0]?.isIntersecting;lastTime=performance.now();invalidate()});intersection.observe(host.value!)
@@ -312,7 +303,7 @@ onMounted(()=>{
 onBeforeUnmount(()=>{
   disposed=true;cancelAnimationFrame(frame);resizeObserver?.disconnect();themeObserver?.disconnect();intersection?.disconnect();document.removeEventListener('visibilitychange',onVisibility);reduced.removeEventListener('change',onReduced)
   if(renderer){const canvas=renderer.domElement;canvas.removeEventListener('pointerdown',onDown);canvas.removeEventListener('pointermove',onMove);canvas.removeEventListener('pointerup',onUp);canvas.removeEventListener('pointercancel',onCancel);canvas.removeEventListener('pointerleave',onLeave)}
-  controls?.dispose();disposeGroup();contactTexture?.dispose();skyTexture?.dispose();scene?.traverse(object=>{if(object instanceof THREE.DirectionalLight)object.shadow.dispose()});renderer?.dispose();renderer?.domElement.remove()
+  controls?.dispose();disposeGroup();contactTexture?.dispose();scene?.traverse(object=>{if(object instanceof THREE.DirectionalLight)object.shadow.dispose()});renderer?.dispose();renderer?.domElement.remove()
 })
 </script>
 <template>
@@ -336,8 +327,6 @@ onBeforeUnmount(()=>{
       </div>
     </div>
     <div class="space-y-3 border-t border-line bg-surface p-3 sm:p-4">
-      <div class="flex flex-wrap items-center gap-2 text-xs" role="group" aria-label="Окружение сцены"><span class="mr-1 text-muted">Окружение</span><button v-for="item in environments" :key="item.id" type="button" class="scene-button" :class="gridEnvironment===item.id?'bg-accent-soft text-accent':'text-muted'" :aria-pressed="gridEnvironment===item.id" @click="gridEnvironment=item.id">{{ item.label }}</button><span v-if="skyLoading" role="status" class="text-muted">Загрузка…</span></div>
-      <p v-if="skyError" role="alert" class="text-xs text-muted">{{ skyError }} <button type="button" class="scene-button text-accent" @click="changeEnvironment">Повторить</button></p>
       <ProductModelPicker v-model="gridProductModel" :loading="modelLoading" :error="modelError" @retry="changeProduct" />
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="text-xs"><p class="font-medium tabular-nums">Заполнено {{ occupied.size }} из {{ count }} ячеек</p><p class="mt-1 text-muted">Продукт {{ fmt(length) }} × {{ fmt(width) }} × {{ fmt(height) }} мм</p></div>
