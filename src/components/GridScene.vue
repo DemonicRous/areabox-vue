@@ -7,7 +7,7 @@ import type { GridStrip } from '../domain/grid'
 import { gridStripMeshGeometry } from '../domain/gridScene'
 const props=defineProps<{length:number;width:number;height:number;gridHeight:number;rows:number;cols:number;cellL:number;cellW:number;board:number;edgeTrim:number;strips:GridStrip[]}>()
 type View='perspective'|'top'|'front'|'side'
-type Product={mesh:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>;progress:number;delay:number;baseY:number}
+type Product={mesh:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>;progress:number;delay:number;baseY:number;shadow:THREE.Mesh<THREE.PlaneGeometry,THREE.MeshBasicMaterial>}
 const host=ref<HTMLDivElement|null>(null),error=ref(''),ready=ref(false)
 const occupied=ref(new Set<number>()),selected=ref(0),hovered=ref<number|null>(null)
 const expanded=ref(false),exploded=ref(false),rotating=ref(false),view=ref<View|null>('perspective')
@@ -22,8 +22,9 @@ let frame=0,lastTime=0,visible=true,disposed=false,unit=1,totalX=1,totalZ=1,asse
 let pointerStart:{x:number;y:number;id:number}|null=null
 const pointers=new Set<number>(),raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2()
 let targets:THREE.Mesh[]=[],products=new Map<number,Product>(),strips:THREE.Group[]=[],highlight:THREE.Mesh|undefined
-let productGeometry:THREE.BoxGeometry|undefined
-let tween:{from:THREE.Vector3;to:THREE.Vector3;targetFrom:THREE.Vector3;targetTo:THREE.Vector3;start:number}|null=null
+let productGeometry:THREE.BoxGeometry|undefined,contactTexture:THREE.CanvasTexture|undefined
+let assemblyTween:{from:number;to:number;start:number}|null=null
+let tween:{from:THREE.Vector3;to:THREE.Vector3;targetFrom:THREE.Vector3;targetTo:THREE.Vector3;start:number;duration:number}|null=null
 const reduced=window.matchMedia('(prefers-reduced-motion: reduce)')
 function invalidate() { if(!frame&&!disposed&&visible&&!document.hidden&&renderer) frame=requestAnimationFrame(renderFrame) }
 function disposeGroup() {
@@ -43,24 +44,26 @@ function applyTheme() {
   if(floor)floor.material.color.setHex(dark?0x202a2c:0xe3e8e1)
   invalidate()
 }
-function moveCamera(position:THREE.Vector3,target:THREE.Vector3) {
+function moveCamera(position:THREE.Vector3,target:THREE.Vector3,duration=360) {
   if(!camera||!controls)return
   rotating.value=false;controls.autoRotate=false
+  // Drain orbit inertia before a scripted transition, then let only the tween move the camera.
+  const damping=controls.enableDamping;controls.enableDamping=false;controls.update();controls.enableDamping=damping
   if(reduced.matches||!ready.value){camera.position.copy(position);controls.target.copy(target);controls.update();tween=null}
-  else tween={from:camera.position.clone(),to:position,targetFrom:controls.target.clone(),targetTo:target,start:performance.now()}
+  else tween={from:camera.position.clone(),to:position,targetFrom:controls.target.clone(),targetTo:target,start:performance.now(),duration}
   invalidate()
 }
-function setView(next:View) {
+function setView(next:View,duration=360) {
   if(!camera||!controls)return
   view.value=next
   const height=Math.max(props.height,props.gridHeight)*unit+(exploded.value?props.gridHeight*unit+1.2:0)
-  const target=new THREE.Vector3(0,height*.45,0)
+  const target=new THREE.Vector3(0,height/2,0)
   const radius=Math.sqrt((totalX*unit)**2+(totalZ*unit)**2+height**2)/2
   const vfov=THREE.MathUtils.degToRad(camera.fov),hfov=2*Math.atan(Math.tan(vfov/2)*camera.aspect)
   fitDistance=radius/Math.sin(Math.min(vfov,hfov)/2)*1.12
   controls.minDistance=Math.max(.8,radius*.35);controls.maxDistance=fitDistance*3
   const direction=next==='top'?new THREE.Vector3(0,1,.001):next==='front'?new THREE.Vector3(0,.12,1):next==='side'?new THREE.Vector3(1,.12,0):new THREE.Vector3(1,.85,1)
-  moveCamera(target.clone().add(direction.normalize().multiplyScalar(fitDistance)),target)
+  moveCamera(target.clone().add(direction.normalize().multiplyScalar(fitDistance)),target,duration)
 }
 function zoom(factor:number) {
   if(!camera||!controls)return
@@ -75,8 +78,11 @@ function addProduct(index:number,delay=0) {
   const material=new THREE.MeshStandardMaterial({color:0x699f97,roughness:.5,transparent:true,opacity:0,depthWrite:false})
   const mesh=new THREE.Mesh(productGeometry,material)
   mesh.position.set((-totalX/2+col*(props.cellL+props.board)+props.cellL/2)*unit,props.height*unit/2,(-totalZ/2+row*(props.cellW+props.board)+props.cellW/2)*unit)
-  mesh.castShadow=count.value<=144;mesh.receiveShadow=true;mesh.visible=false;group.add(mesh)
-  products.set(index,{mesh,progress:0,delay:performance.now()+delay,baseY:props.height*unit/2})
+  // Transparent objects must not cast an opaque shadow while fading.
+  mesh.castShadow=false;mesh.receiveShadow=false;mesh.visible=false;group.add(mesh)
+  const shadow=new THREE.Mesh(new THREE.PlaneGeometry(props.length*unit*1.3,props.width*unit*1.3),new THREE.MeshBasicMaterial({map:contactTexture,transparent:true,opacity:0,depthWrite:false}))
+  shadow.rotation.x=-Math.PI/2;shadow.position.set(mesh.position.x,-.025,mesh.position.z);shadow.visible=false;group.add(shadow)
+  products.set(index,{mesh,shadow,progress:0,delay:performance.now()+delay,baseY:props.height*unit/2})
 }
 function toggle(index:number) {
   if(exploded.value)return
@@ -148,7 +154,7 @@ function rebuild() {
     const edgeGeometry=new THREE.EdgesGeometry(geometry)
     for(let i=0;i<strip.quantity;i++){
       const part=new THREE.Group(),mesh=new THREE.Mesh(geometry,material)
-      mesh.castShadow=true;mesh.receiveShadow=true;part.add(mesh)
+      mesh.castShadow=true;mesh.receiveShadow=false;part.add(mesh)
       part.add(new THREE.LineSegments(edgeGeometry,new THREE.LineBasicMaterial({color:0x806c4d,transparent:true,opacity:.55})))
       if(strip.fromTop){part.rotation.y=-Math.PI/2;part.position.x=(-totalX/2+(i+1)*props.cellL+(i+.5)*props.board)*unit}
       else part.position.z=(-totalZ/2+(i+1)*props.cellW+(i+.5)*props.board)*unit
@@ -169,7 +175,7 @@ function rebuild() {
   occupied.value=new Set([...occupied.value].filter(index=>index<count.value));selected.value=Math.min(selected.value,count.value-1);hovered.value=null
   productGeometry=new THREE.BoxGeometry(props.length*unit,props.height*unit,props.width*unit)
   occupied.value.forEach(index=>addProduct(index))
-  assembly=exploded.value?1:0;strips.forEach(part=>{part.position.y=part.userData.lift*assembly})
+  assembly=exploded.value?1:0;assemblyTween=null;strips.forEach(part=>{part.position.y=part.userData.lift*assembly})
   updateHighlight();applyTheme();setView(view.value??'perspective');invalidate()
 }
 function renderFrame(time:number) {
@@ -178,12 +184,21 @@ function renderFrame(time:number) {
   const dt=Math.min(.05,(time-lastTime)/1000||.016);lastTime=time
   let moving=false
   if(tween){
-    const progress=reduced.matches?1:Math.min(1,(time-tween.start)/360),ease=1-(1-progress)**3
+    const progress=reduced.matches?1:Math.min(1,(time-tween.start)/tween.duration),ease=progress*progress*(3-2*progress)
     camera.position.lerpVectors(tween.from,tween.to,ease);controls.target.lerpVectors(tween.targetFrom,tween.targetTo,ease)
-    if(progress===1)tween=null;else moving=true
+    camera.lookAt(controls.target)
+    if(progress===1){
+      tween=null
+      const damping=controls.enableDamping;controls.enableDamping=false;controls.update();controls.enableDamping=damping
+    }else moving=true
   }
-  const goal=exploded.value?1:0
-  if(Math.abs(assembly-goal)>.001){assembly=reduced.matches?goal:THREE.MathUtils.lerp(assembly,goal,1-Math.exp(-dt*9));if(Math.abs(assembly-goal)<.001)assembly=goal;strips.forEach(part=>{part.position.y=part.userData.lift*assembly});moving=true}
+  if(assemblyTween){
+    const progress=reduced.matches?1:Math.min(1,(time-assemblyTween.start)/620)
+    const ease=progress*progress*progress*(progress*(progress*6-15)+10)
+    assembly=THREE.MathUtils.lerp(assemblyTween.from,assemblyTween.to,ease)
+    strips.forEach(part=>{part.position.y=part.userData.lift*assembly})
+    if(progress===1)assemblyTween=null;else moving=true
+  }
   products.forEach((product,index)=>{
     const target=!exploded.value&&occupied.value.has(index)?1:0
     if(time<product.delay&&target){moving=true;return}
@@ -192,11 +207,13 @@ function renderFrame(time:number) {
       if(Math.abs(product.progress-target)<.001)product.progress=target
       product.mesh.visible=product.progress>0
       product.mesh.material.opacity=product.progress*.85
+      product.shadow.visible=product.progress>0
+      product.shadow.material.opacity=product.progress*product.progress*.22
       product.mesh.position.y=product.baseY+(1-product.progress)*(props.gridHeight*unit+.6)
       moving=true
     }
   })
-  const changed=controls.update();renderer.render(scene,camera)
+  const changed=tween ? false : controls.update(dt);renderer.render(scene,camera)
   if(moving||changed||controls.autoRotate)invalidate()
 }
 function resize(){
@@ -210,18 +227,25 @@ function onVisibility(){lastTime=performance.now();invalidate()}
 function onReduced(){if(reduced.matches)rotating.value=false;invalidate()}
 function onControlStart(){tween=null;view.value=null;hovered.value=null;rotating.value=false;invalidate()}
 watch(active,updateHighlight)
-watch(exploded,()=>{hovered.value=null;updateHighlight();setView(view.value??'perspective');invalidate()})
+watch(exploded,()=>{assemblyTween={from:assembly,to:exploded.value?1:0,start:performance.now()};hovered.value=null;updateHighlight();setView(view.value??'perspective',620);invalidate()})
 watch(rotating,value=>{if(controls){controls.autoRotate=value;controls.autoRotateSpeed=.8;if(value)view.value=null;invalidate()}})
 watch(()=>[props.length,props.width,props.height,props.gridHeight,props.rows,props.cols,props.cellL,props.cellW,props.board,props.edgeTrim,props.strips],rebuild)
 onMounted(()=>{
   try{
     scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(38,1,.05,200)
-    renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace
+    renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace
+    // Backing-buffer resolution is DPR-scaled; layout dimensions remain those of the host.
+    renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';renderer.domElement.style.display='block'
     host.value!.appendChild(renderer.domElement)
+    const contactCanvas=document.createElement('canvas');contactCanvas.width=128;contactCanvas.height=128
+    const context=contactCanvas.getContext('2d')!
+    const gradient=context.createRadialGradient(64,64,12,64,64,64)
+    gradient.addColorStop(0,'rgba(0,0,0,.8)');gradient.addColorStop(.55,'rgba(0,0,0,.45)');gradient.addColorStop(1,'rgba(0,0,0,0)')
+    context.fillStyle=gradient;context.fillRect(0,0,128,128);contactTexture=new THREE.CanvasTexture(contactCanvas)
     controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.12;controls.maxPolarAngle=Math.PI/2-.015;controls.screenSpacePanning=true
     controls.addEventListener('change',invalidate);controls.addEventListener('start',onControlStart)
     scene.add(new THREE.HemisphereLight(0xffffff,0x687975,2.8))
-    const sun=new THREE.DirectionalLight(0xfff4de,3);sun.position.set(5,10,6);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sun.shadow.bias=-.0002;sun.shadow.normalBias=.03;scene.add(sun)
+    const sun=new THREE.DirectionalLight(0xfff4de,3);sun.position.set(5,10,6);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.radius=4;sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sun.shadow.bias=-.0002;sun.shadow.normalBias=.03;scene.add(sun)
     const fillLight=new THREE.DirectionalLight(0xdceafa,1);fillLight.position.set(-6,3,-5);scene.add(fillLight)
     const canvas=renderer.domElement
     canvas.addEventListener('pointerdown',onDown);canvas.addEventListener('pointermove',onMove);canvas.addEventListener('pointerup',onUp);canvas.addEventListener('pointercancel',onCancel);canvas.addEventListener('pointerleave',onLeave)
@@ -236,7 +260,7 @@ onMounted(()=>{
 onBeforeUnmount(()=>{
   disposed=true;cancelAnimationFrame(frame);resizeObserver?.disconnect();themeObserver?.disconnect();intersection?.disconnect();document.removeEventListener('visibilitychange',onVisibility);reduced.removeEventListener('change',onReduced)
   if(renderer){const canvas=renderer.domElement;canvas.removeEventListener('pointerdown',onDown);canvas.removeEventListener('pointermove',onMove);canvas.removeEventListener('pointerup',onUp);canvas.removeEventListener('pointercancel',onCancel);canvas.removeEventListener('pointerleave',onLeave)}
-  controls?.dispose();disposeGroup();scene?.traverse(object=>{if(object instanceof THREE.DirectionalLight)object.shadow.dispose()});renderer?.dispose();renderer?.domElement.remove()
+  controls?.dispose();disposeGroup();contactTexture?.dispose();scene?.traverse(object=>{if(object instanceof THREE.DirectionalLight)object.shadow.dispose()});renderer?.dispose();renderer?.domElement.remove()
 })
 </script>
 <template>
