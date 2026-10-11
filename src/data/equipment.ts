@@ -62,6 +62,17 @@ export function createInlineTemplate(model: string): EquipmentParameterGroup[] {
       dieCutting: 'Слоттер',
       folderGluer: 'Да',
     }
+    if (model === '9PA-2') {
+      Object.assign(values, {
+        profiles: 'E · D · B · C · BF · BD · BE · BC',
+        sheetX: '530 / 1800',
+        sheetY: '200 / 645',
+        panelL: '125 / 771',
+        panelW: '120 / 821',
+        bodyH: '55 / 633',
+        dieCutting: 'Слоттер, Ротационная высечка',
+      })
+    }
     for (const group of groups) {
       group.parameters = group.parameters.filter(parameter => !['feedExtraX', 'feedExtraY', 'slotter'].includes(parameter.id))
       for (const parameter of group.parameters) {
