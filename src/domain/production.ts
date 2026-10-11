@@ -69,7 +69,46 @@ export function geometry(input: BoxInput, tech: Technology, finishing: string): 
 }
 
 export interface Check { blocked: string[]; review: string[] }
-export function checkMachine(machine: Passport, input: BoxInput, geo: Geometry | null, category: string): Check {
+export interface SheetPlan { sheetX: number; sheetY: number; cols: number; rows: number; count: number; utilization: number }
+function bounds(machine: Passport, id: string): [number, number] {
+  const parts = parameter(machine,id)?.split('/') ?? []
+  const value = (part: string | undefined, fallback: number) => part !== undefined && part.trim() !== '' && Number.isFinite(Number(part.trim())) ? Number(part.trim()) : fallback
+  return [value(parts[0],0),value(parts[1],Infinity)]
+}
+// Same orientation as the source HTML: X across flute, Y along flute. No rotation.
+export function planSheet(geo: Geometry, line: Passport, printer?: Passport): SheetPlan | null {
+  const source = machines.corrugator![0]!
+  const tech = technology(line.id)
+  const lines = [line,source,...(printer && printer.id!==line.id ? [printer] : [])]
+  const minX = Math.max(...lines.map(machine=>bounds(machine,'sheetX')[0]))
+  const minY = Math.max(...lines.map(machine=>bounds(machine,'sheetY')[0]))
+  const maxX = Math.min(...lines.map(machine=>bounds(machine,'sheetX')[1]))
+  const maxY = Math.min(...lines.map(machine=>bounds(machine,'sheetY')[1]))
+  if (!Number.isFinite(maxX) || !Number.isFinite(maxY)) return null
+  const margins = ['marginLeft','marginRight','marginTop','marginBottom'].map(id=>Math.max(...lines.map(machine=>Number(parameter(machine,id)??0))))
+  const extraX = tech==='inline' ? 8 : tech==='plotter' ? Math.max(40,margins[0]!+margins[1]!) : margins[0]!+margins[1]!
+  const extraY = tech==='plotter' ? Math.max(40,margins[2]!+margins[3]!) : margins[2]!+margins[3]!
+  const usableX = Math.min(maxX-extraX,...lines.map(machine=>Number(parameter(machine,'workingX')??Infinity)))
+  const usableY = Math.min(maxY-extraY,...lines.map(machine=>Number(parameter(machine,'workingY')??Infinity)))
+  if (tech==='inline') {
+    const sheetX=geo.width+extraX, sheetY=geo.height+extraY
+    return sheetX>=minX && sheetY>=minY && sheetX<=maxX && sheetY<=maxY ? {sheetX,sheetY,cols:1,rows:1,count:1,utilization:geo.width*geo.height/(sheetX*sheetY)} : null
+  }
+  const cols=Math.floor(usableX/geo.width), rows=Math.floor(usableY/geo.height)
+  if (cols<1 || rows<1) return null
+  if (tech==='plotter') return {sheetX:maxX,sheetY:maxY,cols,rows,count:cols*rows,utilization:cols*rows*geo.width*geo.height/(maxX*maxY)}
+  // The original limits the optimization search to 1400 mm unless one blank needs more.
+  const searchX=Math.min(maxX,Math.max(1400,geo.width+extraX)), searchY=Math.min(maxY,Math.max(1400,geo.height+extraY))
+  let best: SheetPlan | null=null
+  for(let c=1;c<=cols;c++) for(let r=1;r<=rows;r++) {
+    const sheetX=Math.max(minX,c*geo.width+extraX), sheetY=Math.max(minY,r*geo.height+extraY)
+    if (sheetX>searchX || sheetY>searchY || sheetX-extraX>usableX || sheetY-extraY>usableY) continue
+    const count=c*r, area=sheetX*sheetY/count
+    if (!best || area<best.sheetX*best.sheetY/best.count-1e-6 || Math.abs(area-best.sheetX*best.sheetY/best.count)<1e-6 && sheetX*sheetY<best.sheetX*best.sheetY) best={sheetX,sheetY,cols:c,rows:r,count,utilization:count*geo.width*geo.height/(sheetX*sheetY)}
+  }
+  return best
+}
+export function checkMachine(machine: Passport, input: BoxInput, geo: Geometry | null, category: string, selectedSheet?: SheetPlan | null): Check {
   const result: Check = { blocked: [], review: [] }
   if (![input.lengthMm, input.widthMm, input.heightMm].every(value => Number.isFinite(value) && value <= 2500)
     || input.lengthMm < 50 || input.widthMm < 50 || input.heightMm < 30 || input.widthMm > input.lengthMm) {
@@ -107,9 +146,13 @@ export function checkMachine(machine: Passport, input: BoxInput, geo: Geometry |
     else if (raw && Number(raw) !== geo.flap) result.blocked.push(`Соединительный клапан должен быть ${raw} мм`)
   }
   let x = geo.width, y = geo.height
+  if (['flatbed','rotary','plotter'].includes(category)) {
+    const plan=selectedSheet===undefined ? planSheet(geo,machine) : selectedSheet
+    if (!plan) { result.blocked.push('Развёртка не помещается в допустимую раскладку листа'); return result }
+    x=plan.sheetX; y=plan.sheetY
+  } else if (selectedSheet && ['corrugator','printing'].includes(category)) { x=selectedSheet.sheetX; y=selectedSheet.sheetY }
   if (category === 'inline') x += 8
-  if (category === 'plotter') { x += 40; y += 40 }
-  if (category === 'printing') {
+  if (category === 'printing' && !selectedSheet) {
     x += Number(parameter(machine, 'marginLeft') ?? 0) + Number(parameter(machine, 'marginRight') ?? 0)
     y += Number(parameter(machine, 'marginTop') ?? 0) + Number(parameter(machine, 'marginBottom') ?? 0)
   }
