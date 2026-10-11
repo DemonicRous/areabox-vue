@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
+import GridStripDrawing from './GridStripDrawing.vue'
 import { gridDraft as grid, gridModel as model, gridRoutes as routes, selectedGridRoute as current, gridCutting, gridConfirmed, gridView, gridSlotMm } from '../composables/useGridDraft'
 const props=defineProps<{view:string}>()
 const emit=defineEmits<{drawing:[];route:[]}>()
@@ -39,11 +40,7 @@ function confirm() { if(!current.value || current.value.blocked.length) return; 
       <div v-else class="space-y-5">
         <section v-for="strip in model.strips" :key="strip.name">
           <div class="mb-2 flex flex-wrap justify-between gap-2 text-sm"><h3 class="font-medium">{{ strip.name }} · {{ strip.quantity }} шт.</h3><span class="text-muted">{{ fmt(strip.length) }} × {{ fmt(strip.height) }} мм</span></div>
-          <svg class="max-h-72 w-full rounded-xl bg-canvas" :viewBox="`-15 -15 ${strip.length+30} ${strip.height+30}`" role="img" :aria-label="`${strip.name}, ширина просечки ${gridSlotMm}, глубина ${model.depth} мм`">
-            <polygon :points="strip.points.map(point=>point.join(',')).join(' ')" fill="var(--accent-soft)" stroke="var(--ink)" stroke-width="1.3" vector-effect="non-scaling-stroke" />
-            <line v-for="position in gridCutting==='roda' ? strip.slots : []" :key="position" :x1="position" :x2="position" :y1="strip.fromTop ? model.depth : strip.height-model.depth" :y2="strip.fromTop ? model.depth+7 : strip.height-model.depth-7" stroke="var(--ink)" vector-effect="non-scaling-stroke" />
-          </svg>
-          <p class="mt-2 text-xs text-muted">Просечка {{ gridSlotMm }} × {{ fmt(model.depth) }} мм · центры от левого края: {{ strip.slots.map(position=>fmt(position)).join(' / ') || 'нет просечек' }}</p>
+          <GridStripDrawing :strip="strip" :slot="gridSlotMm" :depth="model.depth" :overcut="gridCutting==='roda'" />
         </section>
       </div>
       <dl class="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4"><div><dt class="text-muted">Габариты решётки</dt><dd class="mt-1">{{ fmt(model.length) }} × {{ fmt(model.width) }} × {{ fmt(model.height) }} мм</dd></div><div><dt class="text-muted">Ячейка в свету</dt><dd class="mt-1">{{ fmt(model.cellL) }} × {{ fmt(model.cellW) }} мм</dd></div><div><dt class="text-muted">Количество ячеек</dt><dd class="mt-1">{{ grid.rows*grid.cols }}</dd></div><div><dt class="text-muted">Площадь полос / комплект</dt><dd class="mt-1">{{ area(model.pieceArea) }} м²</dd></div></dl>
