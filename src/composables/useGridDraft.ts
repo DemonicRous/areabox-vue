@@ -5,7 +5,7 @@ import { calculateGrid, gridRoute, gridSlotWidth } from '../domain/grid'
 import { machines } from '../data/machines'
 import { useBoxDraft } from './useBoxDraft'
 
-export const gridDraft = reactive({ rows: 3, cols: 3, heightMm: 0, profile: 'D' as ProfileId, clearanceMm: 5, productLengthMm: 60, productWidthMm: 60, productHeightMm: 100, cellGapMm: 1, assembly: 'auto' as 'auto' | 'premier' | 'manual' })
+export const gridDraft = reactive({ rows: 3, cols: 3, heightMm: 0, profile: 'D' as ProfileId, clearanceMm: 5, productLengthMm: 60, productWidthMm: 60, productHeightMm: 100, cellGapMm: 1, layoutMode: 'compact' as 'compact' | 'kit-row', assembly: 'auto' as 'auto' | 'premier' | 'manual' })
 export const gridProductModel = ref<ProductModelId>('box')
 export const gridCutting = ref('roda')
 export const gridConfirmed = ref(false)
@@ -24,4 +24,4 @@ watch(()=>[box.design,gridBoxDimensions.value],()=>{
 export const gridRoutes=computed(()=>[...machines.gridCutting!,...machines.flatbed!,...machines.rotary!,...machines.plotter!].map(line=>gridRoute({...box,...gridBoxDimensions.value},{...gridDraft,slotMm:gridSlotWidth(line.id)},gridModel.value,line)))
 export const selectedGridRoute=computed(()=>gridRoutes.value.find(route=>route.line.id===gridCutting.value)??null)
 export const gridArea=computed(()=>gridConfirmed.value && !selectedGridRoute.value?.blocked.length ? selectedGridRoute.value?.area??null : null)
-watch([box,gridDraft,gridCutting],()=>{gridConfirmed.value=false},{deep:true,flush:'sync'})
+watch([box,()=>{const {layoutMode,...geometry}=gridDraft;return geometry},gridCutting],()=>{gridConfirmed.value=false},{deep:true,flush:'sync'})

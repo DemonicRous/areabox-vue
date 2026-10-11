@@ -6,7 +6,7 @@ import type { BoxInput, ProfileId } from './types'
 
 export const gridSlotWidth = (cuttingId: string) => cuttingId==='roda' ? 7 : 6
 
-export interface GridSettings { rows: number; cols: number; heightMm: number; profile: ProfileId; clearanceMm: number; productLengthMm: number; productWidthMm: number; productHeightMm: number; cellGapMm: number; slotMm: number; assembly: 'auto' | 'premier' | 'manual' }
+export interface GridSettings { rows: number; cols: number; heightMm: number; profile: ProfileId; clearanceMm: number; productLengthMm: number; productWidthMm: number; productHeightMm: number; cellGapMm: number; slotMm: number; assembly: 'auto' | 'premier' | 'manual'; layoutMode?: 'compact' | 'kit-row' }
 export interface GridStrip { name: string; length: number; height: number; quantity: number; slots: number[]; fromTop: boolean; points: number[][] }
 export interface GridModel { errors: string[]; width: number; length: number; height: number; cellL: number; cellW: number; thickness: number; edgeTrim: number; depth: number; strips: GridStrip[]; pieceArea: number }
 export function calculateGrid(_box: BoxInput, settings: GridSettings): GridModel {
@@ -93,11 +93,16 @@ export function gridRoute(box: BoxInput, settings: GridSettings, model: GridMode
   const maxX = Math.min(limits.maxX-limits.left-limits.right,limits.workingX)
   const maxY = Math.min(limits.maxY-limits.top-limits.bottom,limits.workingY)
   const maxRows = Math.floor(maxY/model.height)
-  function pack(kits: number, usableX: number): GridItem[]|null {
+  function pack(kits: number, usableX: number, rowLimit=maxRows): GridItem[]|null {
+    if(line.id==='kongsberg'&&settings.layoutMode==='kit-row'){
+      const kitWidth=pieces.reduce((sum,piece)=>sum+piece.length,0),columns=Math.floor(usableX/kitWidth)
+      if(!columns||Math.ceil(kits/columns)>rowLimit)return null
+      return Array.from({length:kits},(_,index)=>{let x=index%columns*kitWidth;return pieces.map(strip=>{const item={x,y:Math.floor(index/columns)*model.height,width:strip.length,height:model.height,name:strip.name,kit:index+1};x+=strip.length;return item})}).flat()
+    }
     const rows: {used:number;items:GridItem[]}[]=[]
     for (const strip of pieces) for(let kit=1;kit<=kits;kit++) {
       let row=rows.find(row=>row.used+strip.length<=usableX+1e-7)
-      if (!row) { if(rows.length>=maxRows) return null; row={used:0,items:[]}; rows.push(row) }
+      if (!row) { if(rows.length>=rowLimit) return null; row={used:0,items:[]}; rows.push(row) }
       row.items.push({x:row.used,y:(rows.length-1)*model.height,width:strip.length,height:model.height,name:strip.name,kit})
       row.items[row.items.length-1]!.y=rows.indexOf(row)*model.height
       row.used+=strip.length
@@ -117,6 +122,17 @@ export function gridRoute(box: BoxInput, settings: GridSettings, model: GridMode
       const area=sheetX*sheetY/kits/1e6
       if(!best||area<best.area-1e-9||Math.abs(area-best.area)<1e-9&&sheetX*sheetY<best.sheetX*best.sheetY) best={sheetX,sheetY,kits,area,items,left:limits.left,top:limits.top}
     }
+  }
+  // Prefer standard die-cut sheets when a complete kit fits the machine's field.
+  if(machines.flatbed!.some(item=>item.id===line.id)){
+    let preferred:GridSheet|null=null
+    for(const [sheetX,sheetY] of [[1000,1000],[1200,1000],[1000,1200]]){
+      if(sheetX!<limits.minX||sheetY!<limits.minY||sheetX!>limits.maxX||sheetY!>limits.maxY)continue
+      const usableX=Math.min(sheetX!-limits.left-limits.right,limits.workingX),usableY=Math.min(sheetY!-limits.top-limits.bottom,limits.workingY),rows=Math.floor(usableY/model.height)
+      const upper=Math.min(100,Math.floor(usableX*rows/pieces.reduce((sum,piece)=>sum+piece.length,0)))
+      for(let kits=upper;kits>=1;kits--){const items=pack(kits,usableX,rows);if(!items)continue;const area=sheetX!*sheetY!/kits/1e6;if(!preferred||area<preferred.area-1e-9)preferred={sheetX:sheetX!,sheetY:sheetY!,kits,area,items,left:limits.left,top:limits.top};break}
+    }
+    if(preferred)best=preferred
   }
   if (!best) blocked.push('Полный комплект полос не помещается в рабочее поле.')
   if(best) for(const strip of model.strips) {

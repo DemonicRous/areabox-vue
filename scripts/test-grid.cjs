@@ -149,3 +149,10 @@ const noGap=calculateGrid(box,{...screenshotSettings,clearanceMm:0})
 assert.equal(noGap.length,267)
 assert.equal(noGap.strips[0].slots[0],52.5)
 console.log('Reference 262 mm strip, symmetric 50/54/54/54/50 chain and equal fitted cells passed')
+
+const rowSettings={...settings,assembly:'manual',productLengthMm:60,productWidthMm:60,productHeightMm:100,layoutMode:'kit-row'}
+const rowRoute=gridRoute(box,rowSettings,calculateGrid(box,rowSettings),machines.plotter[0])
+assert.equal(rowRoute.blocked.length,0);assert.equal(rowRoute.sheet.sheetX,2500);assert.equal(rowRoute.sheet.sheetY,1600)
+for(let kit=1;kit<=rowRoute.sheet.kits;kit++){const items=rowRoute.sheet.items.filter(item=>item.kit===kit);assert.equal(items.length,4);assert.equal(new Set(items.map(item=>item.y)).size,1);for(let i=1;i<items.length;i++)assert.equal(items[i].x,items[i-1].x+items[i-1].width)}
+for(const line of machines.flatbed){const route=gridRoute(box,{...rowSettings,layoutMode:'compact'},model,line);if(route.sheet&&!route.blocked.length)assert([[1000,1000],[1200,1000],[1000,1200]].some(([x,y])=>x===route.sheet.sheetX&&y===route.sheet.sheetY))}
+console.log('Plotter rows contain complete consecutive kits; eligible flatbed routes prefer standard sheets')

@@ -12,6 +12,7 @@ function confirm() { if(!current.value || current.value.blocked.length) return; 
 </script>
 <template>
   <div class="space-y-5 p-4 sm:p-5">
+      <div v-if="props.view==='layout'&&gridCutting==='kongsberg'" class="flex flex-wrap gap-2" role="group" aria-label="Способ раскладки"><button v-for="mode in [{id:'kit-row',label:'Комплект в строку'},{id:'compact',label:'Компактная раскладка'}] as const" :key="mode.id" type="button" class="min-h-11 cursor-pointer rounded-md px-3 text-sm" :class="grid.layoutMode===mode.id?'bg-accent-soft text-accent':'bg-canvas text-muted'" :aria-pressed="grid.layoutMode===mode.id" @click="grid.layoutMode=mode.id">{{ mode.label }}</button></div>
     <template v-if="props.view==='route'">
       <h2 class="text-base font-semibold">Изготовление решётки</h2>
       <p class="text-xs text-muted">{{ grid.rows*grid.cols }} ячеек · {{ model.strips.reduce((sum,strip)=>sum+strip.quantity,0) }} полос на комплект · {{ current?.assembly==='premier' ? 'сборка Premier PCM' : 'ручная сборка решётки' }}</p>
@@ -25,7 +26,7 @@ function confirm() { if(!current.value || current.value.blocked.length) return; 
       <button type="button" :disabled="!current || !!current.blocked.length" class="min-h-11 cursor-pointer rounded-md bg-accent px-4 text-sm font-medium text-surface disabled:opacity-50" @click="confirm">{{ gridConfirmed ? 'Открыть чертёж' : 'Подтвердить маршрут' }}</button>
     </template>
     <template v-else-if="!gridConfirmed || model.errors.length || current?.blocked.length">
-      <div class="flex flex-col items-center gap-3 py-12"><p class="text-center text-sm text-muted">Исправьте параметры и подтвердите маршрут решётки.</p><button type="button" class="min-h-11 cursor-pointer rounded-md bg-accent-soft px-4 text-sm text-accent" @click="emit('route')">Выбрать маршрут</button></div>
+      <div class="flex flex-col items-center gap-3 py-12"><p class="text-center text-sm text-muted">{{ current?.blocked.length ? current.blocked.join(' · ') : 'Исправьте параметры и подтвердите маршрут решётки.' }}</p><button type="button" class="min-h-11 cursor-pointer rounded-md bg-accent-soft px-4 text-sm text-accent" @click="emit('route')">Выбрать маршрут</button></div>
     </template>
     <template v-else-if="props.view==='drawing'">
       <div class="flex flex-wrap gap-2" role="group" aria-label="Вид решётки"><button v-for="tab in [{id:'plan',label:'Вид сверху'},{id:'strips',label:'Полосы'},{id:'scene',label:'3D'}] as const" :key="tab.id" type="button" class="min-h-11 cursor-pointer rounded-md px-3 text-sm" :class="gridView===tab.id ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas'" :aria-pressed="gridView===tab.id" @click="gridView=tab.id">{{ tab.label }}</button></div>
@@ -47,6 +48,7 @@ function confirm() { if(!current.value || current.value.blocked.length) return; 
     </template>
     <template v-else>
       <h2 class="text-base font-semibold">Раскладка полного комплекта</h2>
+
       <template v-if="sheet">
         <svg class="max-h-[550px] w-full rounded-xl bg-canvas p-3" :viewBox="`-30 -30 ${sheet.sheetX+60} ${sheet.sheetY+60}`" role="img" aria-label="Раскладка полос решётки на листе">
           <rect x="0" y="0" :width="sheet.sheetX" :height="sheet.sheetY" fill="var(--surface)" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
