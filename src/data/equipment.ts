@@ -14,6 +14,37 @@ export interface EquipmentParameterGroup {
   parameters: EquipmentParameter[]
 }
 
+export const asahiTemplate: EquipmentParameterGroup[] = [
+  { id: 'general', title: 'Общие сведения', parameters: [
+    { id: 'name', label: 'Название', format: 'text', value: 'Asahi' },
+    { id: 'model', label: 'Модель', format: 'text' },
+    { id: 'profiles', label: 'Доступные профили картона', format: 'text' },
+    { id: 'designs', label: 'Доступные конструкции', format: 'text' },
+  ] },
+  { id: 'feed', title: 'Формат подачи', parameters: [
+    { id: 'sheetX', label: 'Заготовка · X', format: 'range', unit: 'мм' },
+    { id: 'sheetY', label: 'Заготовка · Y', format: 'range', unit: 'мм' },
+    { id: 'fluteDirection', label: 'Направление гофры относительно X / Y', format: 'text' },
+  ] },
+  { id: 'cutting', title: 'Рабочее поле и раскладка', parameters: [
+    { id: 'workingX', label: 'Рабочее поле · X', format: 'number', unit: 'мм' },
+    { id: 'workingY', label: 'Рабочее поле · Y', format: 'number', unit: 'мм' },
+    { id: 'marginLeft', label: 'Поле слева', format: 'number', unit: 'мм' },
+    { id: 'marginRight', label: 'Поле справа', format: 'number', unit: 'мм' },
+    { id: 'marginTop', label: 'Поле сверху', format: 'number', unit: 'мм' },
+    { id: 'marginBottom', label: 'Поле снизу', format: 'number', unit: 'мм' },
+  ] },
+  { id: 'operations', title: 'Операции и ограничения', parameters: [
+    { id: 'printColors', label: 'Количество цветов печати', format: 'number' },
+    { id: 'printSide', label: 'Сторона печати', format: 'text' },
+    { id: 'dieCutting', label: 'Высечка', format: 'text', value: 'Плоская высечка' },
+    { id: 'folderGluer', label: 'Фальцесклейка', format: 'text' },
+    { id: 'stripping', label: 'Удаление облоя', format: 'text' },
+    { id: 'blanking', label: 'Разлом и разделение изделий', format: 'text' },
+    { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
+  ] },
+]
+
 export const wardTemplate: EquipmentParameterGroup[] = [
   { id: 'general', title: 'Общие сведения', parameters: [
     { id: 'name', label: 'Название', format: 'text', value: 'WARD' },

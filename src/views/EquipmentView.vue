@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
-import { createInlineTemplate, fosberTemplate, kongsbergTemplate, wardTemplate, type EquipmentParameterGroup } from '../data/equipment'
+import { asahiTemplate, createInlineTemplate, fosberTemplate, kongsbergTemplate, wardTemplate, type EquipmentParameterGroup } from '../data/equipment'
 interface Passport { id: string; name: string; groups: EquipmentParameterGroup[] }
 const machines: Record<string, Passport[]> = {
   corrugator: [{ id: 'fosber', name: 'Fosber', groups: fosberTemplate }],
@@ -11,11 +11,12 @@ const machines: Record<string, Passport[]> = {
   ],
   plotter: [{ id: 'kongsberg', name: 'Kongsberg', groups: kongsbergTemplate }],
   rotary: [{ id: 'ward', name: 'WARD', groups: wardTemplate }],
+  flatbed: [{ id: 'asahi', name: 'Asahi', groups: asahiTemplate }],
 }
 const categories = [
   { id: 'corrugator', title: 'Гофроагрегат', count: 1 },
   { id: 'inline', title: 'Инлайн', count: 2 },
-  { id: 'flatbed', title: 'Плоская высечка', count: 0 },
+  { id: 'flatbed', title: 'Плоская высечка', count: 1 },
   { id: 'rotary', title: 'Ротационная высечка', count: 1 },
   { id: 'plotter', title: 'Плоттер', count: 1 },
 ] as const
