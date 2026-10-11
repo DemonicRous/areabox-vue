@@ -1,3 +1,5 @@
+import { profiles } from './catalog'
+
 export interface EquipmentParameter {
   id: string
   label: string
@@ -12,27 +14,27 @@ export interface EquipmentParameterGroup {
   parameters: EquipmentParameter[]
 }
 
-// Structure only: passport values must be supplied before any production checks.
+// Confirmed values supplied by the user; unspecified parameters remain empty.
 export const fosberTemplate: EquipmentParameterGroup[] = [
   {
     id: 'general', title: 'Общие сведения', parameters: [
       { id: 'name', label: 'Название', format: 'text', value: 'Fosber' },
       { id: 'model', label: 'Модель', format: 'text' },
-      { id: 'profiles', label: 'Доступные профили картона', format: 'text' },
+      { id: 'profiles', label: 'Доступные профили картона', format: 'text', value: profiles.join(' · ') },
     ],
   },
   {
     id: 'sheet', title: 'Формат листа', parameters: [
-      { id: 'sheetX', label: 'РЕЗ · X · поперёк гофры', format: 'range', unit: 'мм' },
-      { id: 'sheetY', label: 'РУБ · Y · вдоль гофры', format: 'range', unit: 'мм' },
-      { id: 'cutTolerance', label: 'Точность реза', format: 'number', unit: '± мм' },
+      { id: 'sheetX', label: 'РЕЗ · X · поперёк гофры', format: 'range', unit: 'мм', value: '550 / 2600' },
+      { id: 'sheetY', label: 'РУБ · Y · вдоль гофры', format: 'range', unit: 'мм', value: '140 / 2100' },
+      { id: 'cutTolerance', label: 'Точность реза', format: 'number', unit: '± мм', value: '1' },
     ],
   },
   {
     id: 'slitting', title: 'Продольная резка и рилёвка', parameters: [
       { id: 'slittingKnives', label: 'Количество ножей', format: 'number', unit: 'шт.' },
       { id: 'scorers', label: 'Количество рилёвок', format: 'number', unit: 'шт.' },
-      { id: 'minCutDistance', label: 'Минимальное расстояние между резами', format: 'number', unit: 'мм' },
+      { id: 'minCutDistance', label: 'Минимальное расстояние между резами', format: 'number', unit: 'мм', value: '40' },
       { id: 'minScoreDistance', label: 'Минимальное расстояние между рилёвками', format: 'number', unit: 'мм' },
     ],
   },

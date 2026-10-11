@@ -12,13 +12,13 @@ import { fosberTemplate } from '../data/equipment'
       <section v-for="group in fosberTemplate" :key="group.id" class="border-b border-line p-4 sm:p-5" :aria-labelledby="`fosber-${group.id}`">
         <h3 :id="`fosber-${group.id}`" class="mb-4 text-sm font-semibold">{{ group.title }}</h3>
         <dl class="space-y-4">
-          <div v-for="parameter in group.parameters" :key="parameter.id" class="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1 text-sm">
+          <div v-for="parameter in group.parameters" :key="parameter.id" class="grid items-baseline gap-x-4 gap-y-1 text-sm" :class="parameter.id === 'profiles' ? 'grid-cols-1' : 'grid-cols-[minmax(0,1fr)_auto]'">
             <dt class="text-muted">{{ parameter.label }}<span v-if="parameter.unit" class="ml-1 text-xs">({{ parameter.unit }})</span><span v-if="parameter.format === 'range'" class="mt-1 block text-xs">мин. / макс.</span></dt>
             <dd class="font-medium tabular-nums" :aria-label="parameter.value ? undefined : 'Не задано'">{{ parameter.value ?? (parameter.format === 'range' ? '— / —' : '—') }}</dd>
           </div>
         </dl>
       </section>
     </div>
-    <p class="px-4 py-3 text-xs text-muted sm:px-5">Паспортные значения не заданы.</p>
+    <p class="px-4 py-3 text-xs text-muted sm:px-5">Прочерк — параметр не задан.</p>
   </section>
 </template>
