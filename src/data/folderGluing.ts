@@ -17,7 +17,7 @@ export function createFolderGluingTemplate(name: string): EquipmentParameterGrou
       { id: 'bodyH', label: 'Корпус H между биговками', format: 'range', unit: 'мм', value: values.bodyH },
       { id: 'sheetX', label: 'Длина заготовки · X', format: 'range', unit: 'мм', value: values.sheetX },
       { id: 'sheetY', label: 'Ширина заготовки · Y', format: 'range', unit: 'мм', value: values.sheetY },
-      { id: 'jointFlap', label: 'Соединительный клапан', format: 'range', unit: 'мм' },
+      { id: 'jointFlap', label: 'Соединительный клапан', format: 'range', unit: 'мм', value: '30 / 35' },
     ] },
   ]
 }
