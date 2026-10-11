@@ -46,4 +46,8 @@ assert.equal(inlineVariants[0].sheetX,inlineGeo.width+8)
 assert(evaluateLayout(box,inline,inlineGeo,2,1,2500,355).errors.length>0)
 const pinlong={printing:'pinlong',cutting:'ward',finishing:'signature-elite-135'}
 assert(layoutVariants({...box,hasPrinting:true,printType:'pinlong'},pinlong,geo).every(plan=>plan.sheetY<=840))
+const overlap={...box,design:'0203',creaseLevel:'different'}
+const overlapGeometry=geometry(overlap,'rotary',selection.finishing)
+assert(layoutVariants(overlap,selection,overlapGeometry).length>0,'FEFCO 203 must support die layout')
+assert(layoutVariants({...overlap,hasPrinting:true},plotter,geometry(overlap,'plotter',plotter.finishing)).length>0,'FEFCO 203 must support digital print and plotter layout')
 console.log('Layout variants, margins, complete route limits and manual input checks passed')

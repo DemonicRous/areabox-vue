@@ -48,6 +48,7 @@ const errors = computed(() => {
       </div></fieldset>
       <CatalogSelect v-model="draft.profile" label="Профиль картона" :options="profileOptions" :columns="['Фактическая', 'Чертёжная']" />
       <CatalogSelect v-model="draft.creaseLevel" label="Расположение биговок" :options="creaseOptions" />
+      <p v-if="draft.design==='0203'" class="text-[11px] text-muted">FEFCO 203: биговки на разных уровнях; вырезка на высечке или плоттере.</p>
       <div class="space-y-4 border-t border-line pt-4">
         <label class="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-medium">
           <input v-model="draft.hasPrinting" type="checkbox" class="size-4 shrink-0 accent-accent" aria-controls="box-printing" />

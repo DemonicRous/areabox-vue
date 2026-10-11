@@ -15,8 +15,8 @@ const panels = computed(() => {
 })
 const detailLeft = computed(() => slot.value?.topDepth ? slot.value.topLeft : slot.value?.bottomLeft ?? 0)
 const detailRight = computed(() => slot.value?.topDepth ? slot.value.topRight : slot.value?.bottomRight ?? 0)
-const detailYLeft = computed(() => detailLeft.value >= detailRight.value ? 130 : 100)
-const detailYRight = computed(() => detailRight.value >= detailLeft.value ? 130 : 100)
+const detailYLeft = computed(() => !slot.value?.offset || slot.value.leftIsDeeper ? 130 : 100)
+const detailYRight = computed(() => !slot.value?.offset || !slot.value.leftIsDeeper ? 130 : 100)
 </script>
 <template>
   <div class="space-y-5 p-4 sm:p-5">
@@ -88,7 +88,7 @@ const detailYRight = computed(() => detailRight.value >= detailLeft.value ? 130 
         <dl class="mt-3 space-y-2 text-xs tabular-nums">
           <div class="flex justify-between gap-3"><dt class="text-muted">До левой биговки</dt><dd>{{ fmt(detailLeft) }} мм</dd></div>
           <div class="flex justify-between gap-3"><dt class="text-muted">До правой биговки</dt><dd>{{ fmt(detailRight) }} мм</dd></div>
-          <div class="flex justify-between gap-3"><dt class="text-muted">Глубина реза</dt><dd>{{ fmt(Math.max(detailLeft,detailRight)) }} мм</dd></div>
+          <div class="flex justify-between gap-3"><dt class="text-muted">Глубина реза от длинного клапана</dt><dd>{{ fmt(slot.topDepth || slot.bottomDepth) }} мм</dd></div>
           <div class="flex justify-between gap-3"><dt class="text-muted">Перепад биговок</dt><dd>{{ fmt(slot.offset) }} мм</dd></div>
         </dl>
         <p class="mt-3 text-[11px] text-muted">{{ slot.topDepth ? 'Верхняя просечка между панелями 1 и 2.' : 'Нижняя просечка между панелями 1 и 2.' }} Схема с увеличенным перепадом для наглядности.</p>

@@ -7,6 +7,7 @@ export interface RouteSelection { printing: string; cutting: string; finishing: 
 export interface Geometry {
   width: number; height: number; slot: number; flap: number; body: number
   panels: number[]; points: number[][]; folds: number[][]; count: number
+  panelEdges?: number[][]
 }
 export function parameter(machine: Passport, id: string) {
   return machine.groups.flatMap(group => group.parameters).find(item => item.id === id)?.value
@@ -16,10 +17,10 @@ export function technology(id: string): Technology {
   return (['inline', 'flatbed', 'rotary', 'plotter'] as const).find(category => machines[category]?.some(machine => machine.id === id)) ?? 'plotter'
 }
 export function geometry(input: BoxInput, tech: Technology, finishing: string): Geometry | null {
-  if (['0203', '0201-4'].includes(input.design) || ![input.lengthMm, input.widthMm, input.heightMm].every(value => Number.isFinite(value) && value > 0) || input.widthMm > input.lengthMm) return null
+  if (input.design === '0201-4' || ![input.lengthMm, input.widthMm, input.heightMm].every(value => Number.isFinite(value) && value > 0) || input.widthMm > input.lengthMm) return null
   const material = cardboardProfiles.find(profile => profile.id === input.profile)!
   const t = material.drawingThicknessMm, half = Math.floor(t / 2)
-  const compound = input.design === '0201-2' || input.design === '0201-4'
+  const compound = input.design === '0201-2'
   const stitch = finishing.startsWith('godswill') || finishing.startsWith('gofrotime')
   const slot = tech === 'inline' ? (['BF', 'BE', 'BD', 'BC'].includes(input.profile) ? 10 : 8) : 6
   let panels = [input.widthMm + half, input.lengthMm + t, input.widthMm + t, input.lengthMm + half]
@@ -28,40 +29,49 @@ export function geometry(input: BoxInput, tech: Technology, finishing: string): 
     firstIsLength = finishing.startsWith('gofrotime')
     panels = firstIsLength ? [input.lengthMm + half, input.widthMm + t] : [input.widthMm + t, input.lengthMm + half]
   }
-  if (input.design === '0201-4') panels = [Math.max(input.lengthMm, input.widthMm) + t]
   const panelWidth = panels.reduce((sum, panel) => sum + panel, 0)
   const fiveLayer = ['BF', 'BE', 'BD', 'BC'].includes(input.profile)
   const flap = compound || stitch ? 45 : tech === 'inline' ? (panelWidth > 1600 ? 40 : 35)
     : (tech === 'rotary' || tech === 'plotter') && fiveLayer ? 40
     : material.drawingThicknessMm > 2 ? 35 : 30
   const body = input.heightMm + t
+  const overlap = input.design === '0203'
   const staggered = input.creaseLevel === 'different' && tech !== 'inline'
   const offset = staggered ? material.creaseDistanceMm : 0
   const bottom = Math.floor((input.widthMm + t) / 2) + offset
   const top = input.design === '0200' ? 0 : bottom
-  const height = top + body + bottom
+  const height = overlap ? 2*input.widthMm + body + 2*offset : top + body + bottom
   const xs = [flap]
   for (const panel of panels) xs.push(xs[xs.length - 1]! + panel)
   const levels = panels.map((_, index) => {
-    const isLength = input.design === '0201-4' || (index % 2 === 0 ? firstIsLength : !firstIsLength)
+    const isLength = (index % 2 === 0 ? firstIsLength : !firstIsLength)
+    if (overlap) {
+      const y1 = input.widthMm + (isLength ? 0 : offset)
+      const y2 = y1 + body + (isLength ? 2*offset : 0)
+      return [y1, y2]
+    }
     const shift = isLength ? offset : 0
     return [top === 0 ? 0 : top - shift, top + body + shift]
   })
+  const edges = panels.map((_, index) => {
+    const isLength = index % 2 === 1
+    return overlap && !isLength ? [levels[index]![0]! - top, levels[index]![1]! + bottom] : [0,height]
+  })
   const points: number[][] = [[0, levels[0]![0]! + 10], [flap, levels[0]![0]!]]
   if (top > 0) {
-    points.push([flap, 0])
+    points.push([flap, edges[0]![0]!])
     for (let index = 1; index < xs.length - 1; index++) {
       const x = xs[index]!, y = Math.max(levels[index - 1]![0]!, levels[index]![0]!)
-      points.push([x-slot/2, 0], [x-slot/2, y], [x+slot/2, y], [x+slot/2, 0])
+      points.push([x-slot/2, edges[index-1]![0]!], [x-slot/2, y], [x+slot/2, y], [x+slot/2, edges[index]![0]!])
     }
   }
   const width = xs[xs.length - 1]!
-  points.push([width, 0], [width, height])
+  points.push([width, edges.at(-1)![0]!], [width, edges.at(-1)![1]!])
   for (let index = xs.length - 2; index > 0; index--) {
     const x = xs[index]!, y = Math.min(levels[index - 1]![1]!, levels[index]![1]!)
-    points.push([x+slot/2, height], [x+slot/2, y], [x-slot/2, y], [x-slot/2, height])
+    points.push([x+slot/2, edges[index]![1]!], [x+slot/2, y], [x-slot/2, y], [x-slot/2, edges[index-1]![1]!])
   }
-  points.push([flap, height], [flap, levels[0]![1]!], [0, levels[0]![1]! - 10])
+  points.push([flap, edges[0]![1]!], [flap, levels[0]![1]!], [0, levels[0]![1]! - 10])
   const folds = panels.flatMap((_, index) => {
     const x = xs[index]!, end = xs[index+1]!, [y1, y2] = levels[index]!
     const lines = [[x,y1!,x,y2!]]
@@ -69,21 +79,22 @@ export function geometry(input: BoxInput, tech: Technology, finishing: string): 
     lines.push([x+(index ? slot/2 : 0),y2!,end-(index<panels.length-1 ? slot/2 : 0),y2!])
     return lines
   })
-  return { width, height, slot, flap, body, panels, points, folds, count: input.design === '0201-4' ? 4 : input.design === '0201-2' ? 2 : 1 }
+  return { width, height, slot, flap, body, panels, points, folds, panelEdges: edges, count: input.design === '0201-2' ? 2 : 1 }
 }
 
 export interface Check { blocked: string[]; review: string[] }
 export function drawingMeasurements(geo: Geometry) {
   const folds = geo.folds.filter(fold => fold[0] === fold[2])
   const panels = folds.map((fold, index) => ({
-    width: geo.panels[index]!, top: fold[1]!, body: fold[3]! - fold[1]!, bottom: geo.height - fold[3]!,
+    width: geo.panels[index]!, top: fold[1]! - (geo.panelEdges?.[index]?.[0] ?? 0), body: fold[3]! - fold[1]!, bottom: (geo.panelEdges?.[index]?.[1] ?? geo.height) - fold[3]!,
   }))
   const slots = panels.slice(0, -1).map((panel, index) => {
     const next = panels[index + 1]!
     return { width: geo.slot, topLeft: panel.top, topRight: next.top,
       bottomLeft: panel.bottom, bottomRight: next.bottom,
-      topDepth: Math.max(panel.top, next.top), bottomDepth: Math.max(panel.bottom, next.bottom),
-      offset: Math.abs(panel.top - next.top) || Math.abs(panel.bottom - next.bottom) }
+      topDepth: Math.max(folds[index]![1]!, folds[index+1]![1]!), bottomDepth: geo.height - Math.min(folds[index]![3]!, folds[index+1]![3]!),
+      leftIsDeeper: folds[index]![1]! >= folds[index+1]![1]!,
+      offset: Math.abs(folds[index]![1]! - folds[index+1]![1]!) || Math.abs(folds[index]![3]! - folds[index+1]![3]!) }
   })
   return { panels, slots }
 }
@@ -174,6 +185,7 @@ export function checkMachine(machine: Passport, input: BoxInput, geo: Geometry |
   if (input.hasPrinting && (!Number.isInteger(input.printColors) || input.printColors < 1)) {
     result.blocked.push('Укажите положительное целое количество цветов'); return result
   }
+  if (input.design === '0203' && input.creaseLevel !== 'different') result.blocked.push('FEFCO 203: выберите биговки на разных уровнях')
   if (category === 'manualGluer') {
     if (!geo) result.review.push('Геометрия требует проверки')
     return result
