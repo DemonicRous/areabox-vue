@@ -44,7 +44,7 @@ function toggle(id: string) { opened.value = opened.value === id ? null : id }
       <section v-for="group in machine.groups" :key="group.id" class="border-b border-line p-4 sm:p-5" :aria-labelledby="`${machine.id}-${group.id}`">
         <h4 :id="`${machine.id}-${group.id}`" class="mb-4 text-sm font-semibold">{{ group.title }}</h4>
         <dl class="space-y-4">
-          <div v-for="parameter in group.parameters" :key="parameter.id" class="grid items-baseline gap-x-4 gap-y-1 text-sm" :class="['profiles', 'fluteDirection'].includes(parameter.id) ? 'grid-cols-1' : 'grid-cols-[minmax(0,1fr)_auto]'">
+          <div v-for="parameter in group.parameters" :key="parameter.id" class="grid items-baseline gap-x-4 gap-y-1 text-sm" :class="['profiles', 'designs', 'fluteDirection'].includes(parameter.id) ? 'grid-cols-1' : 'grid-cols-[minmax(0,1fr)_auto]'">
             <dt class="text-muted">{{ parameter.label }}<span v-if="parameter.unit" class="ml-1 text-xs">({{ parameter.unit }})</span><span v-if="parameter.format === 'range'" class="mt-1 block text-xs">мин. / макс.</span></dt>
             <dd class="font-medium tabular-nums" :aria-label="parameter.value ? undefined : 'Не задано'">{{ parameter.value ?? (parameter.format === 'range' ? '— / —' : '—') }}</dd>
           </div>

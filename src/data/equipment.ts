@@ -15,7 +15,7 @@ export interface EquipmentParameterGroup {
 }
 
 export function createInlineTemplate(model: string): EquipmentParameterGroup[] {
-  return [
+  const groups: EquipmentParameterGroup[] = [
     { id: 'general', title: 'Общие сведения', parameters: [
       { id: 'name', label: 'Производитель', format: 'text', value: 'TCY' },
       { id: 'model', label: 'Модель', format: 'text', value: model },
@@ -45,6 +45,22 @@ export function createInlineTemplate(model: string): EquipmentParameterGroup[] {
       { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
     ] },
   ]
+  if (model === '5PA') {
+    const values: Record<string, string> = {
+      profiles: 'D · B · C · BF · BD · BE · BC',
+      designs: '4-клапанные короба с биговками на одном уровне',
+      sheetX: '915 / 2500',
+      sheetY: '350 / 1200',
+      fluteDirection: 'X — поперёк гофры, Y — вдоль гофры',
+    }
+    for (const group of groups) {
+      group.parameters = group.parameters.filter(parameter => !['feedExtraX', 'feedExtraY'].includes(parameter.id))
+      for (const parameter of group.parameters) {
+        if (values[parameter.id] !== undefined) parameter.value = values[parameter.id]
+      }
+    }
+  }
+  return groups
 }
 
 export const kongsbergTemplate: EquipmentParameterGroup[] = [
