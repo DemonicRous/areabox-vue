@@ -48,7 +48,7 @@ function toggle(id: string) { opened.value = opened.value === id ? null : id }
       <span class="rounded-md bg-canvas px-2.5 py-1.5 text-xs text-muted">Шаблон параметров</span>
     </header>
     <div class="grid lg:grid-cols-2">
-      <section v-for="group in machine.groups" :key="group.id" class="border-b border-line p-4 sm:p-5" :aria-labelledby="`${machine.id}-${group.id}`">
+      <section v-for="group in machine.groups" :key="group.id" class="border-b border-line p-4 sm:p-5" :class="{ 'lg:col-span-2': group.id === 'routing' }" :aria-labelledby="`${machine.id}-${group.id}`">
         <h4 :id="`${machine.id}-${group.id}`" class="mb-4 text-sm font-semibold">{{ group.title }}</h4>
         <dl class="space-y-4">
           <div v-for="parameter in group.parameters" :key="parameter.id" class="grid items-baseline gap-x-4 gap-y-1 text-sm" :class="['profiles', 'designs', 'fluteDirection', 'cuttingEquipment'].includes(parameter.id) ? 'grid-cols-1' : ['printSide', 'dieCutting'].includes(parameter.id) ? 'grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]'">
