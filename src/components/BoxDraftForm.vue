@@ -3,6 +3,12 @@ import { computed } from 'vue'
 import { useBoxDraft } from '../composables/useBoxDraft'
 import { designs, cardboardProfiles } from '../data/catalog'
 import CatalogSelect from './CatalogSelect.vue'
+import type { PrintType } from '../domain/types'
+const printOptions: { value: PrintType; label: string }[] = [
+  { value: 'digital', label: 'Цифровая печать' },
+  { value: 'flexo', label: 'Флексопечать' },
+  { value: 'pinlong', label: 'Полноцветная печать' },
+]
 const formatMm = (value: number) => `${value.toLocaleString('ru-RU')} мм`
 const profileOptions = cardboardProfiles.map(profile => ({ value: profile.id, label: profile.id, cells: [formatMm(profile.actualThicknessMm), formatMm(profile.drawingThicknessMm)] }))
 const designOptions = designs.map(design => ({ value: design.id, label: `FEFCO ${Number(design.id.split('-')[0])}`, description: design.title.split(' · ')[1] }))
@@ -42,12 +48,8 @@ const errors = computed(() => {
           <input v-model="draft.hasPrinting" type="checkbox" class="size-4 shrink-0 accent-accent" aria-controls="box-printing" />
           Наличие печати
         </label>
-        <div v-if="draft.hasPrinting" id="box-printing" class="grid gap-4 sm:grid-cols-2">
-          <label class="field">Тип печати<select v-model="draft.printType" class="control">
-            <option value="digital">Цифровая печать</option>
-            <option value="flexo">Флексопечать</option>
-            <option value="pinlong">Полноцветная печать</option>
-          </select></label>
+        <div v-if="draft.hasPrinting" id="box-printing" class="space-y-4">
+          <CatalogSelect v-model="draft.printType" label="Тип печати" :options="printOptions" />
           <label class="field">Количество цветов<input v-model.number="draft.printColors" class="control tabular-nums" type="number" inputmode="numeric" min="1" step="1" :aria-invalid="!Number.isInteger(draft.printColors) || draft.printColors < 1" :aria-describedby="errors.length ? 'box-errors' : undefined" /></label>
         </div>
       </div>
