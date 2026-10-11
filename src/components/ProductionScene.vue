@@ -13,7 +13,7 @@ const cutTech = computed(()=>technology(selection.cutting))
 const geo = computed(()=>selection.cutting ? geometry(draft,cutTech.value,selection.finishing) : null)
 const sheet = computed(()=>geo.value && selection.cutting ? planSheet(geo.value,findMachine(selection.cutting)!,draft.hasPrinting && selection.printing ? findMachine(selection.printing) : undefined) : null)
 const printing = computed(()=> !draft.hasPrinting ? [] : draft.printType === 'flexo'
-  ? [...machines.inline!, ...machines.rotary!] : [machines.printing!.find(machine=>machine.id === (draft.printType === 'digital' ? 'digital' : 'pinlong'))!])
+  ? [...machines.inline!, ...machines.flatbed!, ...machines.rotary!] : [machines.printing!.find(machine=>machine.id === (draft.printType === 'digital' ? 'digital' : 'pinlong'))!])
 const cutting = computed(()=>draft.hasPrinting && draft.printType === 'flexo' ? printing.value.filter(machine=>machine.id===selection.printing)
   : draft.hasPrinting && draft.printType === 'digital' ? machines.plotter!
   : [...(draft.hasPrinting || compound.value ? [] : machines.inline!), ...machines.flatbed!, ...machines.rotary!, ...machines.plotter!])
