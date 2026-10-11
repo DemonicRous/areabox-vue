@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { ArrowRightIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import { useBoxDraft } from '../composables/useBoxDraft'
-import { productionSelection as selection, confirmedProduction } from '../composables/useProductionRoute'
+import { productionSelection as selection, confirmedProduction, savedLayout } from '../composables/useProductionRoute'
 import RouteLayout from './RouteLayout.vue'
 import { findMachine, parameter, evaluateRoute, finishingLines, productionRoutes, technology, type ProductionRoute } from '../domain/production'
 const emit = defineEmits<{ drawing: [] }>()
@@ -16,7 +16,7 @@ const connections = computed(() => current.value ? finishingLines(draft, current
   line, route: evaluateRoute(draft, current.value!.line.id, line.id),
 })) : [])
 const geo = computed(() => current.value?.geometry)
-const sheet = computed(() => current.value?.sheet)
+const sheet = computed(() => savedLayout.value ?? current.value?.sheet)
 const previewLeft = computed(() => current.value ? technology(current.value.line.id) === 'inline' ? 8 : Math.max(technology(current.value.line.id) === 'plotter' ? 20 : 0, ...[current.value.line, findMachine(current.value.selection.printing)].filter(Boolean).map(line => Number(parameter(line!, 'marginLeft') ?? 0))) : 0)
 const previewTop = computed(() => current.value ? Math.max(technology(current.value.line.id) === 'plotter' ? 20 : 0, ...[current.value.line, findMachine(current.value.selection.printing)].filter(Boolean).map(line => Number(parameter(line!, 'marginTop') ?? 0))) : 0)
 const labels = { inline: 'Инлайн', flatbed: 'Плоская высечка', rotary: 'Ротационная высечка', plotter: 'Плоттер' }
