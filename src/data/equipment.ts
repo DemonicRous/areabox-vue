@@ -76,6 +76,8 @@ export function createPrintingTemplate(name: 'Pinlong' | 'Цифровая пе�
       marginLeft: '10', marginRight: '10', marginTop: '8', marginBottom: '17',
       sheetX: '660 / 1650',
       sheetY: '350 / 840',
+      printColors: '6',
+      printSide: 'Любая сторона, включая печать с двух сторон',
       fluteDirection: 'X — поперёк гофры, Y — вдоль гофры',
       workingX: String(1650 - 10 - 10),
       workingY: String(840 - 8 - 17),
