@@ -4,9 +4,21 @@ const vm = require('node:vm')
 const output = buildSync({ entryPoints: ['src/domain/production.ts'], bundle: true, platform: 'node', format: 'cjs', write: false })
 const context = { module: { exports: {} }, exports: {} }
 vm.runInNewContext(output.outputFiles[0].text, context)
-const { geometry, checkMachine, findMachine, planSheet, finishingLines, productionRoutes, evaluateRoute } = context.module.exports
+const { geometry, checkMachine, findMachine, planSheet, finishingLines, productionRoutes, evaluateRoute, drawingMeasurements } = context.module.exports
 const box = { design: '0201', profile: 'B', lengthMm: 300, widthMm: 200, heightMm: 150, hasPrinting: false, creaseLevel: 'same', printType: 'digital', printColors: 1 }
 const inline = geometry(box, 'inline', '')
+const staggered = drawingMeasurements(geometry({...box,profile:'BF',creaseLevel:'different'},'rotary',''))
+assert.equal(staggered.slots[0].offset,3.5)
+assert.equal(staggered.slots[0].topLeft,105.5)
+assert.equal(staggered.slots[0].topRight,102)
+assert.equal(staggered.slots[0].topDepth,105.5)
+assert.equal(staggered.panels[0].body,154)
+assert.equal(staggered.panels[1].body,161)
+assert.equal(drawingMeasurements(geometry(box,'rotary','')).slots[0].offset,0)
+const openTop=drawingMeasurements(geometry({...box,design:'0200',profile:'BF',creaseLevel:'different'},'rotary',''))
+assert.equal(openTop.slots[0].topDepth,0)
+assert.equal(openTop.slots[0].bottomDepth,105.5)
+assert.equal(openTop.slots[0].offset,3.5)
 assert.equal(inline.slot, 8)
 assert.equal(inline.width, 1043)
 assert.equal(inline.height, 355)

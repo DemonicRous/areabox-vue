@@ -73,6 +73,20 @@ export function geometry(input: BoxInput, tech: Technology, finishing: string): 
 }
 
 export interface Check { blocked: string[]; review: string[] }
+export function drawingMeasurements(geo: Geometry) {
+  const folds = geo.folds.filter(fold => fold[0] === fold[2])
+  const panels = folds.map((fold, index) => ({
+    width: geo.panels[index]!, top: fold[1]!, body: fold[3]! - fold[1]!, bottom: geo.height - fold[3]!,
+  }))
+  const slots = panels.slice(0, -1).map((panel, index) => {
+    const next = panels[index + 1]!
+    return { width: geo.slot, topLeft: panel.top, topRight: next.top,
+      bottomLeft: panel.bottom, bottomRight: next.bottom,
+      topDepth: Math.max(panel.top, next.top), bottomDepth: Math.max(panel.bottom, next.bottom),
+      offset: Math.abs(panel.top - next.top) || Math.abs(panel.bottom - next.bottom) }
+  })
+  return { panels, slots }
+}
 export interface ProductionRoute extends Check {
   selection: RouteSelection; line: Passport; names: string[]
   geometry: Geometry | null; sheet: SheetPlan | null
