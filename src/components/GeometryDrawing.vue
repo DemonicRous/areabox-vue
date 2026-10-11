@@ -27,6 +27,16 @@ const panels = computed(() => {
   let x = geometry.value.flap
   return geometry.value.panels.map(width => { const segment = { start: x, end: x + width, value: width }; x += width; return segment })
 })
+const selectedHighlight = computed(() => {
+  const panel = panelDimensions.value
+  const segment = panels.value[selectedPanel.value]
+  if (!panel || !segment) return null
+  const edge = geometry.value.panelEdges?.[selectedPanel.value]?.[0] ?? 0
+  const leftInset = selectedPanel.value ? geometry.value.slot / 2 : 0
+  const rightInset = selectedPanel.value < panels.value.length - 1 ? geometry.value.slot / 2 : 0
+  return { x: segment.start, width: segment.value, edge, top: edge + panel.top, body: panel.body,
+    upper: panel.top, lower: panel.bottom, flapX: segment.start + leftInset, flapWidth: segment.value - leftInset - rightInset }
+})
 const detailLeft = computed(() => slot.value?.topDepth ? slot.value.topLeft : slot.value?.bottomLeft ?? 0)
 const detailRight = computed(() => slot.value?.topDepth ? slot.value.topRight : slot.value?.bottomRight ?? 0)
 const detailYLeft = computed(() => !slot.value?.offset || slot.value.leftIsDeeper ? 130 : 100)
@@ -54,7 +64,11 @@ const detailYRight = computed(() => !slot.value?.offset || !slot.value.leftIsDee
           <circle :cx="(segment.start+segment.end)/2" :cy="geometry.height/2" :r="font*.8" fill="var(--accent-soft)" />
           <text :x="(segment.start+segment.end)/2" :y="geometry.height/2+font*.34" :font-size="font" text-anchor="middle" fill="var(--accent)">{{ index+1 }}</text>
         </g>
-        <rect v-if="panelDetailsOpen && panels[selectedPanel]" :x="panels[selectedPanel]!.start" :y="geometry.folds.filter(fold=>fold[0]===fold[2])[selectedPanel]?.[1] ?? 0" :width="panels[selectedPanel]!.value" :height="panelDimensions?.body ?? geometry.body" fill="var(--accent)" opacity=".12" pointer-events="none" />
+        <g v-if="panelDetailsOpen && selectedHighlight" fill="var(--accent)" pointer-events="none">
+          <rect :x="selectedHighlight.x" :y="selectedHighlight.top" :width="selectedHighlight.width" :height="selectedHighlight.body" opacity=".24" />
+          <rect :x="selectedHighlight.flapX" :y="selectedHighlight.edge" :width="selectedHighlight.flapWidth" :height="selectedHighlight.upper" opacity=".12" />
+          <rect :x="selectedHighlight.flapX" :y="selectedHighlight.top+selectedHighlight.body" :width="selectedHighlight.flapWidth" :height="selectedHighlight.lower" opacity=".12" />
+        </g>
         <line v-for="(fold,index) in geometry.folds" :key="index" :x1="fold[0]" :y1="fold[1]" :x2="fold[2]" :y2="fold[3]" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" />
         <g v-if="dimensions">
         <g v-for="(segment,index) in [{ start: 0, end: geometry.flap, value: geometry.flap }, ...panels]" :key="index">
@@ -116,9 +130,9 @@ const detailYRight = computed(() => !slot.value?.offset || !slot.value.leftIsDee
   </div>
 </template>
 <style scoped>
-.panel-hit { cursor: pointer; }
-.panel-hit:hover { fill: var(--accent); fill-opacity: .06; }
-.panel-hit:focus-visible { outline: none; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.panel-hit { cursor: pointer; outline: none; }
+.panel-hit:focus-visible:not([aria-pressed="true"]) { fill: var(--accent); fill-opacity: .06; }
+.panel-hit:focus, .panel-hit:focus-visible { outline: none; stroke: none; }
 .drawing-control { transition: color 160ms ease, background-color 160ms ease; }
 .drawing-control:focus-visible, .drawing-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .dimension-label { font-variant-numeric: tabular-nums; }
