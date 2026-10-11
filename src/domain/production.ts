@@ -21,7 +21,6 @@ export function geometry(input: BoxInput, tech: Technology, finishing: string): 
   const t = material.drawingThicknessMm, half = Math.floor(t / 2)
   const compound = input.design === '0201-2' || input.design === '0201-4'
   const stitch = finishing.startsWith('godswill') || finishing.startsWith('gofrotime')
-  const flap = compound || stitch ? 45 : tech === 'inline' ? 35 : 30
   const slot = tech === 'inline' ? (['BF', 'BE', 'BD', 'BC'].includes(input.profile) ? 10 : 8) : 6
   let panels = [input.widthMm + half, input.lengthMm + t, input.widthMm + t, input.lengthMm + half]
   let firstIsLength = false
@@ -30,6 +29,9 @@ export function geometry(input: BoxInput, tech: Technology, finishing: string): 
     panels = firstIsLength ? [input.lengthMm + half, input.widthMm + t] : [input.widthMm + t, input.lengthMm + half]
   }
   if (input.design === '0201-4') panels = [Math.max(input.lengthMm, input.widthMm) + t]
+  const panelWidth = panels.reduce((sum, panel) => sum + panel, 0)
+  const flap = compound || stitch ? 45 : tech === 'inline' ? (panelWidth > 1600 ? 40 : 35)
+    : tech === 'flatbed' && material.drawingThicknessMm > 2 ? 35 : 30
   const body = input.heightMm + t
   const staggered = input.creaseLevel === 'different' && tech !== 'inline'
   const offset = staggered ? material.creaseDistanceMm : 0

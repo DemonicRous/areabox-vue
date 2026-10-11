@@ -3,7 +3,8 @@ import { computed, watch } from 'vue'
 import { ArrowRightIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import { useBoxDraft } from '../composables/useBoxDraft'
 import { productionSelection as selection, confirmedProduction } from '../composables/useProductionRoute'
-import { evaluateRoute, finishingLines, productionRoutes, technology, type ProductionRoute } from '../domain/production'
+import RouteLayout from './RouteLayout.vue'
+import { findMachine, parameter, evaluateRoute, finishingLines, productionRoutes, technology, type ProductionRoute } from '../domain/production'
 const emit = defineEmits<{ drawing: [] }>()
 const draft = useBoxDraft()
 const routes = computed(() => productionRoutes(draft))
@@ -16,6 +17,8 @@ const connections = computed(() => current.value ? finishingLines(draft, current
 })) : [])
 const geo = computed(() => current.value?.geometry)
 const sheet = computed(() => current.value?.sheet)
+const previewLeft = computed(() => current.value ? technology(current.value.line.id) === 'inline' ? 8 : Math.max(technology(current.value.line.id) === 'plotter' ? 20 : 0, ...[current.value.line, findMachine(current.value.selection.printing)].filter(Boolean).map(line => Number(parameter(line!, 'marginLeft') ?? 0))) : 0)
+const previewTop = computed(() => current.value ? Math.max(technology(current.value.line.id) === 'plotter' ? 20 : 0, ...[current.value.line, findMachine(current.value.selection.printing)].filter(Boolean).map(line => Number(parameter(line!, 'marginTop') ?? 0))) : 0)
 const labels = { inline: 'Инлайн', flatbed: 'Плоская высечка', rotary: 'Ротационная высечка', plotter: 'Плоттер' }
 function choose(route: ProductionRoute) {
   Object.assign(selection, route.selection)
@@ -79,14 +82,7 @@ function confirm() {
         </div>
       </fieldset>
       <div v-if="geo && sheet" class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_160px]">
-        <div class="min-w-0 bg-canvas p-3">
-          <svg class="h-44 w-full sm:h-52" :viewBox="`-8 -8 ${sheet.sheetX+16} ${sheet.sheetY+16}`" role="img" aria-label="Раскладка развёрток на производственном листе">
-            <rect :width="sheet.sheetX" :height="sheet.sheetY" fill="var(--surface)" stroke="var(--muted)" stroke-width="1" vector-effect="non-scaling-stroke" />
-            <g v-for="index in sheet.count" :key="index" :transform="`translate(${(sheet.sheetX-sheet.cols*geo.width)/2+((index-1)%sheet.cols)*geo.width},${(sheet.sheetY-sheet.rows*geo.height)/2+Math.floor((index-1)/sheet.cols)*geo.height})`">
-              <polygon :points="geo.points.map(point=>point.join(',')).join(' ')" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1" vector-effect="non-scaling-stroke" />
-            </g>
-          </svg>
-        </div>
+        <RouteLayout :geometry="geo" :sheet="sheet" :left="previewLeft" :top="previewTop" :inline="technology(current.line.id) === 'inline'" />
         <dl class="grid grid-cols-2 gap-x-3 gap-y-3 text-xs sm:grid-cols-1">
           <div><dt class="text-muted">Лист, мм</dt><dd class="mt-1 text-sm font-medium tabular-nums">{{ sheet.sheetX }} × {{ sheet.sheetY }}</dd></div>
           <div><dt class="text-muted">Одна развёртка, мм</dt><dd class="mt-1 font-medium tabular-nums">{{ geo.width }} × {{ geo.height }}</dd></div>
