@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useBoxDraft } from '../composables/useBoxDraft'
 import { designs, cardboardProfiles } from '../data/catalog'
 import CatalogSelect from './CatalogSelect.vue'
@@ -17,6 +17,10 @@ const formatMm = (value: number) => `${value.toLocaleString('ru-RU')} мм`
 const profileOptions = cardboardProfiles.map(profile => ({ value: profile.id, label: profile.id, cells: [formatMm(profile.actualThicknessMm), formatMm(profile.drawingThicknessMm)] }))
 const designOptions = designs.map(design => ({ value: design.id, label: `FEFCO ${Number(design.id.split('-')[0])}`, description: design.title.split(' · ')[1] }))
 const draft = useBoxDraft()
+const availableCreaseOptions = computed(() => draft.design === '0203' ? creaseOptions.filter(option=>option.value==='different') : creaseOptions)
+watch(() => draft.design, design => {
+  if (design === '0203') draft.creaseLevel = 'different'
+}, { immediate: true, flush: 'sync' })
 const dimensions = [
   { key: 'lengthMm', label: 'Длина L', min: 50 },
   { key: 'widthMm', label: 'Ширина W', min: 50 },
@@ -47,7 +51,7 @@ const errors = computed(() => {
         <label v-for="field in dimensions" :key="field.key" class="field">{{ field.label }}<input v-model.number="draft[field.key]" class="control tabular-nums" type="number" inputmode="decimal" :min="field.min" max="2500" step="1" :aria-invalid="typeof draft[field.key] !== 'number' || draft[field.key] < field.min || draft[field.key] > 2500 || (field.key === 'widthMm' && draft.widthMm > draft.lengthMm)" :aria-describedby="errors.length ? 'box-errors' : undefined" /></label>
       </div></fieldset>
       <CatalogSelect v-model="draft.profile" label="Профиль картона" :options="profileOptions" :columns="['Фактическая', 'Чертёжная']" />
-      <CatalogSelect v-model="draft.creaseLevel" label="Расположение биговок" :options="creaseOptions" />
+      <CatalogSelect v-model="draft.creaseLevel" label="Расположение биговок" :options="availableCreaseOptions" />
       <p v-if="draft.design==='0203'" class="text-[11px] text-muted">FEFCO 203: биговки на разных уровнях; вырезка на высечке или плоттере.</p>
       <div class="space-y-4 border-t border-line pt-4">
         <label class="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-medium">
