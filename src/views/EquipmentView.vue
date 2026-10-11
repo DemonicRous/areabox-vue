@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
-import { asahiTemplate, eternaTemplate, createInlineTemplate, createPrintingTemplate, fosberTemplate, kongsbergTemplate, wardTemplate, type EquipmentParameterGroup } from '../data/equipment'
+import { asahiTemplate, eternaTemplate, createInlineTemplate, createPrintingTemplate, createStitchingTemplate, fosberTemplate, kongsbergTemplate, wardTemplate, type EquipmentParameterGroup } from '../data/equipment'
 interface Passport { id: string; name: string; groups: EquipmentParameterGroup[] }
 const machines: Record<string, Passport[]> = {
+  stitching: [
+    { id: 'godswill-gts-3000', name: 'Godswill GTS-3000', groups: createStitchingTemplate('Godswill', 'GTS-3000') },
+    { id: 'gofrotime-sdj-2000b', name: 'GofroTime SDJ-2000B', groups: createStitchingTemplate('GofroTime', 'SDJ-2000B') },
+  ],
   corrugator: [{ id: 'fosber', name: 'Fosber', groups: fosberTemplate }],
   printing: [
     { id: 'pinlong', name: 'Pinlong', groups: createPrintingTemplate('Pinlong') },
@@ -24,6 +28,7 @@ const categories = [
   { id: 'flatbed', title: 'Плоская высечка', count: 2 },
   { id: 'rotary', title: 'Ротационная высечка', count: 1 },
   { id: 'plotter', title: 'Плоттер', count: 1 },
+  { id: 'stitching', title: 'Сшивка', count: 2 },
 ] as const
 const opened = ref<string | null>('corrugator')
 function toggle(id: string) { opened.value = opened.value === id ? null : id }

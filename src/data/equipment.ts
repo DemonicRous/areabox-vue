@@ -21,6 +21,33 @@ export const printingCuttingCompatibility = {
 
 export const digitalPrintingAreaAllowance = { x: 100, y: 100 } as const
 
+export function createStitchingTemplate(manufacturer: string, model: string): EquipmentParameterGroup[] {
+  return [
+    { id: 'general', title: 'Общие сведения', parameters: [
+      { id: 'name', label: 'Производитель', format: 'text', value: manufacturer },
+      { id: 'model', label: 'Модель', format: 'text', value: model },
+      { id: 'profiles', label: 'Доступные профили картона', format: 'text' },
+      { id: 'designs', label: 'Доступные конструкции', format: 'text' },
+    ] },
+    { id: 'format', title: 'Размеры и ограничения', parameters: [
+      { id: 'panelL', label: 'Панель L между биговками', format: 'range', unit: 'мм' },
+      { id: 'panelW', label: 'Панель W между биговками', format: 'range', unit: 'мм' },
+      { id: 'bodyH', label: 'Корпус H между биговками', format: 'range', unit: 'мм' },
+      { id: 'jointFlap', label: 'Соединительный клапан', format: 'range', unit: 'мм' },
+    ] },
+    { id: 'stitching', title: 'Параметры сшивки', parameters: [
+      { id: 'stitchPitch', label: 'Расстояние между скобами', format: 'range', unit: 'мм' },
+      { id: 'stitchCount', label: 'Количество скоб', format: 'range', unit: 'шт.' },
+      { id: 'edgeOffset', label: 'Отступ крайней скобы от края', format: 'number', unit: 'мм' },
+      { id: 'wire', label: 'Проволока', format: 'text' },
+    ] },
+    { id: 'operations', title: 'Операции и ограничения', parameters: [
+      { id: 'stitchingModes', label: 'Режимы сшивки', format: 'text' },
+      { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
+    ] },
+  ]
+}
+
 export function createPrintingTemplate(name: 'Pinlong' | 'Цифровая печать'): EquipmentParameterGroup[] {
   const groups: EquipmentParameterGroup[] = [
     { id: 'general', title: 'Общие сведения', parameters: [
