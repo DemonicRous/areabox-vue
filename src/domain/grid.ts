@@ -11,7 +11,9 @@ export interface GridStrip { name: string; length: number; height: number; quant
 export interface GridModel { errors: string[]; width: number; length: number; height: number; cellL: number; cellW: number; thickness: number; depth: number; strips: GridStrip[]; pieceArea: number }
 export function calculateGrid(_box: BoxInput, settings: GridSettings): GridModel {
   const errors: string[] = []
-  const t = cardboardProfiles.find(item=>item.id===settings.profile)?.actualThicknessMm ?? NaN
+  const profile = cardboardProfiles.find(item=>item.id===settings.profile)
+  const t = profile?.drawingThicknessMm ?? NaN
+  const actualThickness = profile?.actualThicknessMm ?? NaN
   const cellL = settings.productLengthMm+settings.cellGapMm, cellW = settings.productWidthMm+settings.cellGapMm
   const length = cellL*settings.cols+t*(settings.cols-1), width = cellW*settings.rows+t*(settings.rows-1)
   const height = settings.heightMm===0 ? settings.productHeightMm : settings.heightMm
@@ -19,7 +21,7 @@ export function calculateGrid(_box: BoxInput, settings: GridSettings): GridModel
   if (![settings.productLengthMm,settings.productWidthMm,settings.productHeightMm].every(n=>Number.isFinite(n)&&n>0&&n<=2500)) errors.push('Габариты продукта: положительные числа до 2500 мм.')
   if (![settings.clearanceMm,settings.cellGapMm].every(n=>Number.isFinite(n)&&n>=0)) errors.push('Допуск ячейки и запас короба должны быть неотрицательными числами.')
   if (!Number.isFinite(height) || height<20 || height>2500) errors.push('Высота решётки: от 20 до 2500 мм.')
-  if (!Number.isFinite(t) || !Number.isFinite(settings.slotMm) || settings.slotMm<t || settings.slotMm>20) errors.push('Просечка должна быть не уже фактической толщины картона и не более 20 мм.')
+  if (!Number.isFinite(t) || !Number.isFinite(settings.slotMm) || settings.slotMm<actualThickness || settings.slotMm>20) errors.push('Просечка должна быть не уже фактической толщины картона и не более 20 мм.')
   const depth = height/2+5
   const strips: GridStrip[] = []
   if (!errors.length) {

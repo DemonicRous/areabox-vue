@@ -40,6 +40,7 @@ const suggestions=computed(()=>{
     <label class="field">Высота решётки, мм<input :value="grid.heightMm || ''" class="control" type="number" min="20" max="2500" :placeholder="`По продукту: ${grid.productHeightMm} мм`" @input="grid.heightMm=Number(($event.target as HTMLInputElement).value)" /></label>
     <p class="text-[11px] text-muted">По умолчанию равна высоте продукта. Очистите поле, чтобы вернуть автоматическую высоту.</p>
     <CatalogSelect v-model="grid.profile" label="Профиль решётки" :options="options" :columns="['Фактическая','Чертёжная']" />
+    <p class="text-[11px] text-muted">Габариты и положение просечек рассчитываются по чертёжной толщине профиля.</p>
     <CatalogSelect v-model="grid.assembly" label="Сборка" :options="[{value:'auto',label:'Автоподбор',description:'Premier PCM или ручная сборка'},{value:'premier',label:'Premier PCM'},{value:'manual',label:'Ручная сборка решётки'}]" />
     <details class="text-xs">
       <summary class="min-h-11 cursor-pointer py-3 text-muted">Подбор композиции</summary>
