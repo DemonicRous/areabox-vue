@@ -5,7 +5,7 @@ import { designs, cardboardProfiles } from '../data/catalog'
 import CatalogSelect from './CatalogSelect.vue'
 const formatMm = (value: number) => `${value.toLocaleString('ru-RU')} мм`
 const profileOptions = cardboardProfiles.map(profile => ({ value: profile.id, label: profile.id, cells: [formatMm(profile.actualThicknessMm), formatMm(profile.drawingThicknessMm)] }))
-const designOptions = designs.map(design => ({ value: design.id, label: design.id, description: design.title.split(' · ')[1] }))
+const designOptions = designs.map(design => ({ value: design.id, label: `FEFCO ${Number(design.id.split('-')[0])}`, description: design.title.split(' · ')[1] }))
 const draft = useBoxDraft()
 const dimensions = [
   { key: 'lengthMm', label: 'Длина L', min: 50 },

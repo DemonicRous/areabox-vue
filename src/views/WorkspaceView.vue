@@ -16,7 +16,7 @@ const selected = computed(() => views.find(view => view.id === route.query.view)
 function changeView(id: string) { router.replace({ path: '/', query: { ...route.query, view: id === 'drawing' ? undefined : id } }) }
 </script>
 <template>
-  <div class="mb-5 flex items-center justify-between gap-4"><h1 class="text-lg font-semibold">Короб</h1><span class="text-xs text-muted">FEFCO {{ draft.design }} · {{ draft.profile }}</span></div>
+  <div class="mb-5 flex items-center justify-between gap-4"><h1 class="text-lg font-semibold">Короб</h1><span class="text-xs text-muted">FEFCO {{ Number(draft.design.split('-')[0]) }} · {{ draft.profile }}</span></div>
   <div class="grid items-start gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
     <BoxDraftForm />
     <section class="min-w-0 overflow-hidden rounded-xl border border-line bg-surface" aria-label="Результат">
