@@ -69,6 +69,44 @@ export function geometry(input: BoxInput, tech: Technology, finishing: string): 
 }
 
 export interface Check { blocked: string[]; review: string[] }
+export interface ProductionRoute extends Check {
+  selection: RouteSelection; line: Passport; names: string[]
+  geometry: Geometry | null; sheet: SheetPlan | null
+}
+export function finishingLines(input: BoxInput, cutting: string): Passport[] {
+  if (technology(cutting) === 'inline') return []
+  if (['0201-2', '0201-4'].includes(input.design)) return machines.stitching!
+  return [...machines.folderGluer!, ...(technology(cutting) === 'plotter' ? machines.manualGluer! : [])]
+}
+export function evaluateRoute(input: BoxInput, cutting: string, finishing: string): ProductionRoute {
+  const line = findMachine(cutting)!
+  const printing = !input.hasPrinting ? '' : input.printType === 'flexo' ? cutting : input.printType === 'digital' ? 'digital' : 'pinlong'
+  const geo = geometry(input, technology(cutting), finishing)
+  const sheet = geo ? planSheet(geo, line, printing ? findMachine(printing) : undefined) : null
+  const chain = [machines.corrugator![0]!, ...(printing ? [findMachine(printing)!] : []), line, ...(finishing ? [findMachine(finishing)!] : [])]
+    .filter((machine, index, all) => all.findIndex(item => item.id === machine.id) === index)
+  const checks = chain.map(machine => {
+    const category = Object.keys(machines).find(key => machines[key]!.some(item => item.id === machine.id))!
+    const result = checkMachine(machine, input, geo, category, sheet)
+    return { blocked: result.blocked.map(reason => `${machine.name}: ${reason}`), review: result.review.map(reason => `${machine.name}: ${reason}`) }
+  })
+  const blocked = checks.flatMap(check => check.blocked)
+  if (technology(cutting) !== 'inline' && !finishing) blocked.push('Нет подходящей линии соединения')
+  if (finishing && !finishingLines(input, cutting).some(machine => machine.id === finishing)) blocked.push('Способ соединения недоступен для этой конструкции')
+  return { selection: { printing, cutting, finishing }, line, names: chain.map(machine => machine.name), geometry: geo, sheet, blocked: [...new Set(blocked)], review: [...new Set(checks.flatMap(check => check.review))] }
+}
+export function productionRoutes(input: BoxInput): ProductionRoute[] {
+  const compound = ['0201-2', '0201-4'].includes(input.design)
+  const lines = input.hasPrinting && input.printType === 'digital' ? machines.plotter!
+    : input.hasPrinting && input.printType === 'flexo' ? [...(compound ? [] : machines.inline!), ...machines.flatbed!, ...machines.rotary!]
+    : [...(!input.hasPrinting && !compound ? machines.inline! : []), ...machines.flatbed!, ...machines.rotary!, ...machines.plotter!]
+  return lines.map(line => {
+    const options = finishingLines(input, line.id)
+    if (!options.length) return evaluateRoute(input, line.id, '')
+    const routes = options.map(finishing => evaluateRoute(input, line.id, finishing.id))
+    return routes.find(route => !route.blocked.length) ?? routes[0]!
+  }).sort((a, b) => Number(!!a.blocked.length) - Number(!!b.blocked.length))
+}
 export interface SheetPlan { sheetX: number; sheetY: number; cols: number; rows: number; count: number; utilization: number }
 function bounds(machine: Passport, id: string): [number, number] {
   const parts = parameter(machine,id)?.split('/') ?? []
@@ -129,7 +167,7 @@ export function checkMachine(machine: Passport, input: BoxInput, geo: Geometry |
     if (input.creaseLevel !== 'same') result.blocked.push('Биговки должны быть на одной высоте')
     if (!['0200', '0201'].includes(input.design)) result.blocked.push('Конструкция недоступна на инлайне')
   }
-  if (category === 'stitching' && !['0201-2', '0201-4'].includes(input.design)) result.review.push('Конструкция не подтверждена в паспорте сшивки')
+  if (category === 'stitching' && !['0201-2', '0201-4'].includes(input.design)) result.blocked.push('Сшивка доступна только для коробок из половинок')
   if (!geo) { result.review.push('Геометрия требует проверки'); return result }
   const minBlankHeight = parameter(machine,'minBlankHeight')
   if (minBlankHeight && geo.height < Number(minBlankHeight)) {
@@ -169,7 +207,7 @@ export function checkMachine(machine: Passport, input: BoxInput, geo: Geometry |
     const limit = parameter(machine,id)
     if (limit && value > Number(limit)) result.blocked.push(`${label}: ${value} > ${limit} мм`)
   }
-  if (input.hasPrinting && (category === 'printing' || input.printType === 'flexo' && ['inline','rotary'].includes(category))) {
+  if (input.hasPrinting && (category === 'printing' || input.printType === 'flexo' && ['inline','flatbed','rotary'].includes(category))) {
     const colors = parameter(machine,'printColors')
     if (colors && input.printColors > Number(colors)) result.blocked.push(`Печать: максимум ${colors} цвета`)
     if (!colors) result.review.push('Количество цветов требует проверки')

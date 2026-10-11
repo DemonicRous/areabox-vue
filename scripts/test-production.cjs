@@ -4,7 +4,7 @@ const vm = require('node:vm')
 const output = buildSync({ entryPoints: ['src/domain/production.ts'], bundle: true, platform: 'node', format: 'cjs', write: false })
 const context = { module: { exports: {} }, exports: {} }
 vm.runInNewContext(output.outputFiles[0].text, context)
-const { geometry, checkMachine, findMachine, planSheet } = context.module.exports
+const { geometry, checkMachine, findMachine, planSheet, finishingLines, productionRoutes, evaluateRoute } = context.module.exports
 const box = { design: '0201', profile: 'B', lengthMm: 300, widthMm: 200, heightMm: 150, hasPrinting: false, creaseLevel: 'same', printType: 'digital', printColors: 1 }
 const inline = geometry(box, 'inline', '')
 assert.equal(inline.slot, 8)
@@ -42,4 +42,17 @@ const oversized = geometry({ ...box, lengthMm: 1300, widthMm: 1200 }, 'rotary', 
 assert.equal(planSheet(oversized, ward), null)
 assert(checkMachine(ward, { ...box, lengthMm: 1300, widthMm: 1200 }, oversized, 'rotary').blocked.length > 0)
 assert.equal(checkMachine(findMachine('signature-elite-135'),box,dieBlank,'folderGluer',wardPlan).blocked.length,0, 'Folder gluer receives individual blanks, not the die sheet')
-console.log('Production geometry and equipment checks passed')
+assert(finishingLines(box,'ward').every(line=>!line.id.startsWith('godswill') && !line.id.startsWith('gofrotime')))
+assert(finishingLines(box,'kongsberg').some(line=>line.id==='manual-gluing'))
+assert(!finishingLines(box,'ward').some(line=>line.id==='manual-gluing'))
+assert(finishingLines({...box,design:'0201-2'},'ward').every(line=>line.id.startsWith('godswill') || line.id.startsWith('gofrotime')))
+assert(evaluateRoute(box,'ward','godswill-gts-3000').blocked.some(reason=>reason.includes('Сшивка')))
+const flexoRoutes=productionRoutes({...box,hasPrinting:true,printType:'flexo',printColors:3})
+assert(flexoRoutes.some(route=>route.line.id==='asahi'))
+assert(flexoRoutes.find(route=>route.line.id==='asahi').blocked.some(reason=>reason.includes('Печать')))
+assert(flexoRoutes.find(route=>route.line.id==='ward').blocked.length===0)
+assert(productionRoutes({...box,hasPrinting:true,printType:'digital'}).every(route=>route.line.id==='kongsberg' && route.selection.printing==='digital'))
+assert(productionRoutes({...box,hasPrinting:true,printType:'pinlong'}).every(route=>!route.line.id.startsWith('tcy') && route.selection.printing==='pinlong'))
+assert(productionRoutes(box).some(route=>route.line.id==='ward' && route.sheet.count===3 && !route.blocked.length))
+assert(productionRoutes({...box,widthMm:400}).every(route=>route.blocked.length))
+console.log('Production geometry, complete routes and equipment checks passed')

@@ -1,99 +1,118 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { ArrowRightIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
-import { machines, type Passport } from '../data/machines'
+import { computed, watch } from 'vue'
+import { ArrowRightIcon, CheckIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { useBoxDraft } from '../composables/useBoxDraft'
 import { productionSelection as selection, confirmedProduction } from '../composables/useProductionRoute'
-import { checkMachine, geometry, technology, findMachine, planSheet } from '../domain/production'
+import { evaluateRoute, finishingLines, productionRoutes, technology, type ProductionRoute } from '../domain/production'
 const emit = defineEmits<{ drawing: [] }>()
 const draft = useBoxDraft()
-const activeStage=ref('cutting')
-const compound = computed(()=>['0201-2','0201-4'].includes(draft.design))
-const cutTech = computed(()=>technology(selection.cutting))
-const geo = computed(()=>selection.cutting ? geometry(draft,cutTech.value,selection.finishing) : null)
-const sheet = computed(()=>geo.value && selection.cutting ? planSheet(geo.value,findMachine(selection.cutting)!,draft.hasPrinting && selection.printing ? findMachine(selection.printing) : undefined) : null)
-const printing = computed(()=> !draft.hasPrinting ? [] : draft.printType === 'flexo'
-  ? [...machines.inline!, ...machines.flatbed!, ...machines.rotary!] : [machines.printing!.find(machine=>machine.id === (draft.printType === 'digital' ? 'digital' : 'pinlong'))!])
-const cutting = computed(()=>draft.hasPrinting && draft.printType === 'flexo' ? printing.value.filter(machine=>machine.id===selection.printing)
-  : draft.hasPrinting && draft.printType === 'digital' ? machines.plotter!
-  : [...(draft.hasPrinting || compound.value ? [] : machines.inline!), ...machines.flatbed!, ...machines.rotary!, ...machines.plotter!])
-const finishing = computed(()=> cutTech.value === 'inline' ? [] : compound.value ? machines.stitching! : [...machines.folderGluer!, ...machines.stitching!, ...(cutTech.value==='plotter' ? machines.manualGluer! : [])])
-function category(machine: Passport) { return Object.keys(machines).find(key=>machines[key]!.some(item=>item.id===machine.id))! }
-function check(machine: Passport, stage: string) {
-  const candidateGeometry = stage === 'cutting' ? geometry(draft,technology(machine.id),selection.finishing)
-    : stage === 'finishing' && selection.cutting ? geometry(draft,cutTech.value,machine.id) : geo.value
-  const cat=category(machine)
-  const candidateSheet = candidateGeometry && ['flatbed','rotary','plotter','inline'].includes(cat) ? planSheet(candidateGeometry,machine,draft.hasPrinting && selection.printing ? findMachine(selection.printing) : undefined) : sheet.value
-  return checkMachine(machine,draft,candidateGeometry,cat,candidateSheet)
-}
-const stages = computed(()=>[
-  { id: 'corrugator', title: 'Гофрокартон', options: machines.corrugator!, selected: 'fosber', note: '' },
-  { id: 'printing', title: 'Печать', options: printing.value, selected: selection.printing, note: !draft.hasPrinting ? 'Без печати' : '' },
-  { id: 'cutting', title: 'Вырезка', options: cutting.value, selected: selection.cutting, note: draft.hasPrinting && draft.printType === 'digital' ? 'После Hanway — только плоттер' : '' },
-  { id: 'finishing', title: 'Соединение', options: finishing.value, selected: selection.finishing, note: selection.cutting && cutTech.value === 'inline' ? 'Фальцесклейка в составе инлайна' : '' },
-])
-const active = computed(()=>stages.value.find(stage=>stage.id===activeStage.value)!)
-const ready = computed(()=>!!selection.cutting && (!draft.hasPrinting || !!selection.printing) && (cutTech.value==='inline' || !!selection.finishing))
-const selectedMachines = computed(()=>[machines.corrugator![0]!, ...(draft.hasPrinting && selection.printing ? [findMachine(selection.printing)!] : []), ...(selection.cutting ? [findMachine(selection.cutting)!] : []), ...(selection.finishing && cutTech.value!=='inline' ? [findMachine(selection.finishing)!] : [])].filter((machine,index,all)=>machine && all.findIndex(item=>item.id===machine.id)===index))
-const checks = computed(()=>selectedMachines.value.map(machine=>check(machine,'selected')))
-const blocked = computed(()=>checks.value.flatMap(value=>value.blocked))
-const review = computed(()=>[...new Set(checks.value.flatMap(value=>value.review))])
-function choose(stage: string, id: string) {
+const routes = computed(() => productionRoutes(draft))
+const available = computed(() => routes.value.filter(route => !route.blocked.length))
+const unavailable = computed(() => routes.value.filter(route => route.blocked.length))
+const current = computed(() => selection.cutting && routes.value.some(route => route.line.id === selection.cutting)
+  ? evaluateRoute(draft, selection.cutting, selection.finishing) : null)
+const connections = computed(() => current.value ? finishingLines(draft, current.value.line.id).map(line => ({
+  line, route: evaluateRoute(draft, current.value!.line.id, line.id),
+})) : [])
+const geo = computed(() => current.value?.geometry)
+const sheet = computed(() => current.value?.sheet)
+const labels = { inline: 'Инлайн', flatbed: 'Плоская высечка', rotary: 'Ротационная высечка', plotter: 'Плоттер' }
+function choose(route: ProductionRoute) {
+  Object.assign(selection, route.selection)
   confirmedProduction.value = null
-  if (stage==='printing') { selection.printing=id; selection.cutting=''; selection.finishing=''; activeStage.value='cutting' }
-  if (stage==='cutting') { selection.cutting=id; selection.finishing=''; activeStage.value=technology(id)==='inline' ? 'cutting' : 'finishing' }
-  if (stage==='finishing') selection.finishing=id
 }
-watch(draft,()=>{
-  confirmedProduction.value=null
-  if (!printing.value.some(machine=>machine.id===selection.printing)) selection.printing=''
-  if (!cutting.value.some(machine=>machine.id===selection.cutting)) { selection.cutting=''; selection.finishing=''; activeStage.value='cutting' }
-  if (!finishing.value.some(machine=>machine.id===selection.finishing)) selection.finishing=''
-},{deep:true})
+watch(draft, () => {
+  confirmedProduction.value = null
+  if (!current.value || current.value.blocked.length) Object.assign(selection, { printing: '', cutting: '', finishing: '' })
+  else Object.assign(selection, current.value.selection)
+}, { deep: true, immediate: true })
 function confirm() {
-  if (!ready.value || blocked.value.length) return
-  confirmedProduction.value={ names: selectedMachines.value.map(machine=>machine.name), geometry: geo.value, review: review.value }
-  if (geo.value) emit('drawing')
+  const route = current.value
+  if (!route || route.blocked.length) return
+  confirmedProduction.value = { names: route.names, geometry: route.geometry, review: route.review }
+  if (route.geometry) emit('drawing')
 }
 </script>
 <template>
-  <div class="space-y-5 p-4 sm:p-5">
-    <h2 class="text-sm font-semibold">Производственная цепочка</h2>
-    <div class="grid gap-2 sm:grid-cols-4">
-      <button v-for="stage in stages" :key="stage.id" type="button" :aria-expanded="activeStage===stage.id" aria-controls="route-options" class="flex min-h-20 min-w-0 cursor-pointer flex-col justify-center gap-2 rounded-lg border px-3 py-3 text-left transition-colors hover:bg-canvas" :class="activeStage===stage.id ? 'border-accent bg-accent-soft' : 'border-line'" @click="activeStage=stage.id">
-        <span class="flex items-center justify-between gap-2 text-[11px] text-muted">{{ stage.title }}<ArrowRightIcon v-if="stage.id!=='finishing'" class="size-3.5 shrink-0" aria-hidden="true" /></span>
-        <span class="text-sm font-medium">{{ stage.options.find(machine=>machine.id===stage.selected)?.name || (stage.id==='printing' && !draft.hasPrinting ? 'Без печати' : stage.id==='finishing' && selection.cutting && cutTech==='inline' ? 'В составе инлайна' : 'Выбрать линию') }}</span>
+  <div class="p-4 sm:p-6">
+    <div class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+      <h2 class="text-base font-semibold">Выберите маршрут</h2>
+      <span class="text-xs text-muted" aria-live="polite">Доступно: {{ available.length }} из {{ routes.length }}</span>
+    </div>
+    <p class="mb-4 text-xs text-muted">Печать, вырезка и соединение проверяются вместе.</p>
+    <div v-if="available.length" class="divide-y divide-line border-y border-line" role="group" aria-label="Доступные производственные маршруты">
+      <button v-for="route in available" :key="route.line.id" type="button" :aria-pressed="selection.cutting === route.line.id"
+        class="flex w-full cursor-pointer gap-3 px-2 py-4 text-left transition-colors hover:bg-canvas focus-visible:outline-2 focus-visible:outline-accent"
+        :class="selection.cutting === route.line.id ? 'bg-accent-soft' : ''" @click="choose(route)">
+        <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border" :class="selection.cutting === route.line.id ? 'border-accent bg-accent text-surface' : 'border-muted'">
+          <CheckIcon v-if="selection.cutting === route.line.id" class="size-3.5" aria-hidden="true" />
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <span class="text-sm font-semibold">{{ route.line.name }} <span class="ml-1 text-xs font-normal text-muted">{{ labels[technology(route.line.id)] }}</span></span>
+            <span class="text-xs text-muted tabular-nums">{{ route.sheet ? `${route.sheet.count} мест на листе` : 'Геометрия не подтверждена' }}</span>
+          </span>
+          <span class="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
+            <template v-for="(name, index) in (selection.cutting === route.line.id && current ? current.names : route.names)" :key="name">
+              <ArrowRightIcon v-if="index" class="size-3 shrink-0" aria-hidden="true" /><span>{{ name }}</span>
+            </template>
+          </span>
+          <span v-if="route.review.length" class="mt-2 block text-[11px] text-muted">Предварительно · есть незаданные ограничения</span>
+        </span>
       </button>
     </div>
-    <section id="route-options" class="space-y-3" :aria-label="active.title">
-      <div class="flex flex-wrap items-baseline justify-between gap-2"><h3 class="text-sm font-medium">{{ active.title }}</h3><span v-if="active.options.length" class="text-xs text-muted">{{ active.options.length }} линии</span></div>
-      <p v-if="active.note" class="text-xs text-muted">{{ active.note }}</p>
-      <div class="grid gap-2 sm:grid-cols-2">
-        <div v-for="machine in active.options" :key="machine.id" class="min-w-0">
-          <button type="button" :disabled="check(machine,active.id).blocked.length>0 || active.id==='finishing' && !selection.cutting" :aria-pressed="active.selected===machine.id" class="flex min-h-12 w-full cursor-pointer items-center justify-between gap-3 rounded-md border px-3 py-3 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50" :class="active.selected===machine.id ? 'border-accent bg-accent-soft' : 'border-line hover:bg-canvas'" @click="choose(active.id,machine.id)">
-            <span>{{ machine.name }}</span><CheckCircleIcon v-if="active.selected===machine.id" class="size-4 shrink-0 text-accent" aria-hidden="true" />
-          </button>
-          <p v-if="check(machine,active.id).blocked.length" class="mt-1 px-1 text-[11px] text-danger">{{ check(machine,active.id).blocked.join(' · ') }}</p>
-        </div>
+    <p v-else class="border-y border-line py-6 text-sm" role="status">Подходящих маршрутов нет. Ниже указаны ограничения линий.</p>
+    <section v-if="current" class="mt-6 space-y-5" aria-label="Выбранный маршрут">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 class="text-sm font-semibold">{{ current.line.name }} · настройка маршрута</h3>
+        <span v-if="technology(current.line.id) === 'inline'" class="text-xs text-muted">Склейка в составе линии</span>
       </div>
-      <p v-if="active.id==='finishing' && !selection.cutting" class="text-xs text-muted">Сначала выберите линию вырезки.</p>
+      <fieldset v-if="connections.length" class="min-w-0">
+        <legend class="mb-2 text-xs text-muted">Соединение короба</legend>
+        <div class="grid gap-2 sm:grid-cols-2">
+          <label v-for="option in connections" :key="option.line.id" class="flex min-h-11 items-start gap-2 rounded-md border px-3 py-3 text-sm"
+            :class="option.route.blocked.length ? 'border-line text-muted opacity-60' : selection.finishing === option.line.id ? 'cursor-pointer border-accent bg-accent-soft' : 'cursor-pointer border-line hover:bg-canvas'">
+            <input type="radio" name="route-connection" :value="option.line.id" :checked="selection.finishing === option.line.id" :disabled="!!option.route.blocked.length"
+              class="mt-0.5 size-4 shrink-0 accent-accent" @change="choose(option.route)" />
+            <span class="min-w-0">{{ option.line.name }}<span v-if="option.route.blocked.length" class="mt-1 block text-[11px]">{{ option.route.blocked.join(' · ') }}</span></span>
+          </label>
+        </div>
+      </fieldset>
+      <div v-if="geo && sheet" class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_160px]">
+        <div class="min-w-0 bg-canvas p-3">
+          <svg class="h-44 w-full sm:h-52" :viewBox="`-8 -8 ${sheet.sheetX+16} ${sheet.sheetY+16}`" role="img" aria-label="Раскладка развёрток на производственном листе">
+            <rect :width="sheet.sheetX" :height="sheet.sheetY" fill="var(--surface)" stroke="var(--muted)" stroke-width="1" vector-effect="non-scaling-stroke" />
+            <g v-for="index in sheet.count" :key="index" :transform="`translate(${(sheet.sheetX-sheet.cols*geo.width)/2+((index-1)%sheet.cols)*geo.width},${(sheet.sheetY-sheet.rows*geo.height)/2+Math.floor((index-1)/sheet.cols)*geo.height})`">
+              <polygon :points="geo.points.map(point=>point.join(',')).join(' ')" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1" vector-effect="non-scaling-stroke" />
+            </g>
+          </svg>
+        </div>
+        <dl class="grid grid-cols-2 gap-x-3 gap-y-3 text-xs sm:grid-cols-1">
+          <div><dt class="text-muted">Лист, мм</dt><dd class="mt-1 text-sm font-medium tabular-nums">{{ sheet.sheetX }} × {{ sheet.sheetY }}</dd></div>
+          <div><dt class="text-muted">Одна развёртка, мм</dt><dd class="mt-1 font-medium tabular-nums">{{ geo.width }} × {{ geo.height }}</dd></div>
+          <div><dt class="text-muted">Раскладка</dt><dd class="mt-1 font-medium">{{ sheet.cols }} × {{ sheet.rows }} · {{ sheet.count }} мест</dd></div>
+          <div><dt class="text-muted">Просечка / клапан, мм</dt><dd class="mt-1 font-medium">{{ geo.slot }} / {{ geo.flap }}</dd></div>
+        </dl>
+      </div>
+      <ul v-if="current.blocked.length" class="space-y-1 text-xs text-danger" role="alert"><li v-for="reason in current.blocked" :key="reason">{{ reason }}</li></ul>
+      <details v-if="current.review.length" class="text-xs text-muted">
+        <summary class="min-h-8 cursor-pointer">Требуют проверки: {{ current.review.length }}</summary>
+        <ul class="mt-2 space-y-2"><li v-for="reason in current.review" :key="reason">{{ reason }}</li></ul>
+      </details>
+      <div class="flex flex-wrap items-center gap-3 border-t border-line pt-4">
+        <button type="button" :disabled="!!current.blocked.length" class="min-h-11 w-full cursor-pointer rounded-md bg-accent px-4 py-2 text-sm font-medium text-surface disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto" @click="confirm">
+          {{ geo ? 'Построить развёртку' : 'Сохранить предварительный маршрут' }}
+        </button>
+        <span v-if="current.review.length" class="text-xs text-muted">Маршрут предварительный</span>
+      </div>
     </section>
-    <section v-if="geo && sheet" class="grid items-center gap-4 border-t border-line pt-4 sm:grid-cols-[minmax(0,1fr)_auto]" aria-label="Раскладка на листе">
-      <svg class="max-h-44 w-full" :viewBox="`-8 -8 ${sheet.sheetX+16} ${sheet.sheetY+16}`" role="img" aria-label="Расположение развёрток на производственном листе">
-        <rect :width="sheet.sheetX" :height="sheet.sheetY" fill="var(--canvas)" stroke="var(--muted)" stroke-width="1" vector-effect="non-scaling-stroke" />
-        <g v-for="index in sheet.count" :key="index" :transform="`translate(${(sheet.sheetX-sheet.cols*geo.width)/2+((index-1)%sheet.cols)*geo.width},${(sheet.sheetY-sheet.rows*geo.height)/2+Math.floor((index-1)/sheet.cols)*geo.height})`">
-          <polygon :points="geo.points.map(point=>point.join(',')).join(' ')" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1" vector-effect="non-scaling-stroke" />
-        </g>
-      </svg>
-      <div class="space-y-2 text-xs tabular-nums"><p class="text-sm font-semibold">{{ sheet.count }} мест · {{ sheet.cols }} × {{ sheet.rows }}</p><p class="text-muted">Лист {{ sheet.sheetX }} × {{ sheet.sheetY }} мм</p><p class="text-muted">Развёртка {{ geo.width }} × {{ geo.height }} мм</p><p class="text-muted">Использование {{ Math.round(sheet.utilization*100) }}%</p></div>
-    </section>
-    <div v-if="ready" class="space-y-3 border-t border-line pt-4" aria-live="polite">
-      <p class="text-xs text-muted">Просечка {{ geo?.slot ?? '—' }} мм · соединительный клапан {{ geo?.flap ?? '—' }} мм</p>
-      <ul v-if="blocked.length" class="space-y-1 text-xs text-danger"><li v-for="reason in blocked" :key="reason">{{ reason }}</li></ul>
-      <details v-if="review.length" class="text-xs text-muted"><summary class="cursor-pointer">Проверка паспорта · {{ review.length }} уточнений</summary><ul class="mt-2 space-y-1"><li v-for="reason in review" :key="reason">{{ reason }}</li></ul></details>
-      <button type="button" :disabled="blocked.length>0" class="min-h-11 w-full cursor-pointer rounded-md bg-accent px-4 py-2 text-sm font-medium text-surface disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto" @click="confirm">{{ geo ? 'Построить развёртку' : 'Выбрать предварительный маршрут' }}</button>
-      <p v-if="review.length" class="text-[11px] text-muted">Маршрут предварительный: часть ограничений требует проверки.</p>
-      <p v-if="confirmedProduction && !geo" class="text-xs text-muted">Геометрия этой конструкции ещё требует калибровки.</p>
-    </div>
+    <p v-else-if="available.length" class="py-6 text-center text-xs text-muted">Выберите цепочку, чтобы увидеть раскладку и построить развёртку.</p>
+    <details v-if="unavailable.length" class="mt-4 border-t border-line pt-3">
+      <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-xs text-muted">Недоступные маршруты · {{ unavailable.length }}<ChevronDownIcon class="size-4" aria-hidden="true" /></summary>
+      <div v-for="route in unavailable" :key="route.line.id" class="border-t border-line py-3">
+        <p class="text-sm font-medium">{{ route.line.name }}</p>
+        <ul class="mt-2 space-y-1 text-xs text-muted"><li v-for="reason in route.blocked" :key="reason">{{ reason }}</li></ul>
+      </div>
+    </details>
   </div>
 </template>
