@@ -22,7 +22,7 @@ function changeView(id: string) { router.replace({ path: '/', query: { ...route.
     <section class="min-w-0 overflow-hidden rounded-xl border border-line bg-surface" aria-label="Результат">
       <div class="flex flex-wrap items-center gap-2 border-b border-line px-2 py-2 sm:px-3">
         <nav aria-label="Вид результата" class="flex min-w-0 gap-1">
-          <button v-for="view in views" :key="view.id" type="button" :aria-pressed="selected.id === view.id" class="flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs transition-colors hover:bg-canvas sm:gap-2 sm:px-3 sm:text-sm" :class="selected.id === view.id ? 'bg-accent-soft font-medium text-accent' : 'text-muted'" @click="changeView(view.id)"><AppIcon :name="view.icon" class="hidden size-4 sm:block" />{{ view.title }}</button>
+          <button v-for="view in views" :key="view.id" type="button" :aria-pressed="selected.id === view.id" class="flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors hover:bg-canvas sm:gap-2 sm:px-3 sm:text-sm" :class="selected.id === view.id ? 'bg-accent-soft text-accent' : 'text-muted'" @click="changeView(view.id)"><AppIcon :name="view.icon" class="hidden size-4 sm:block" />{{ view.title }}</button>
         </nav>
         <span class="ml-auto hidden text-xs text-muted sm:block">мм</span>
       </div>
