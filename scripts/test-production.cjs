@@ -25,6 +25,11 @@ for (const tech of ['rotary','plotter']) {
   assert.equal(geometry({...box,design:'0201-2',profile:'BC'},tech,'godswill-gts-3000').flap,45)
 }
 assert.equal(geometry({...box,profile:'BC'},'flatbed','').flap,35)
+for (const profile of ['BF','BE','BD','BC']) {
+  for (const line of ['ward','kongsberg']) {
+    assert(!evaluateRoute({...box,profile},line,'rito-jh-1700').blocked.some(reason=>reason.includes('Соединительный клапан')), 'RITO must accept the 40 mm five-layer flap')
+  }
+}
 assert.equal(geometry({...box,design:'0201-2'},'flatbed','godswill-gts-3000').flap,45)
 assert.equal(geometry({ ...box, profile: 'BC' }, 'inline', '').slot, 10)
 assert.equal(geometry(box, 'flatbed', '').slot, 6)
