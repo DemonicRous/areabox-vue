@@ -43,6 +43,35 @@ export const asahiTemplate: EquipmentParameterGroup[] = [
   ] },
 ]
 
+export const eternaTemplate: EquipmentParameterGroup[] = [
+  { id: 'general', title: 'Общие сведения', parameters: [
+    { id: 'name', label: 'Название', format: 'text', value: 'ETERNA' },
+    { id: 'model', label: 'Модель', format: 'text' },
+    { id: 'profiles', label: 'Доступные профили картона', format: 'text', value: 'F · E · D · B' },
+    { id: 'designs', label: 'Доступные конструкции', format: 'text', value: 'Любая конструкция' },
+  ] },
+  { id: 'feed', title: 'Формат подачи', parameters: [
+    { id: 'sheetX', label: 'Заготовка · X', format: 'range', unit: 'мм', value: '650 / 1650' },
+    { id: 'sheetY', label: 'Заготовка · Y', format: 'range', unit: 'мм', value: '450 / 1200' },
+    { id: 'fluteDirection', label: 'Направление гофры относительно X / Y', format: 'text', value: 'X — поперёк гофры, Y — вдоль гофры' },
+  ] },
+  { id: 'cutting', title: 'Рабочее поле и раскладка', parameters: [
+    { id: 'workingX', label: 'Рабочее поле · X (расчётное)', format: 'number', unit: 'мм', value: String(1650 - 10 - 10) },
+    { id: 'workingY', label: 'Рабочее поле · Y (расчётное)', format: 'number', unit: 'мм', value: String(1200 - 8 - 17) },
+    { id: 'marginLeft', label: 'Поле слева', format: 'number', unit: 'мм', value: '10' },
+    { id: 'marginRight', label: 'Поле справа', format: 'number', unit: 'мм', value: '10' },
+    { id: 'marginTop', label: 'Поле сверху', format: 'number', unit: 'мм', value: '8' },
+    { id: 'marginBottom', label: 'Поле снизу', format: 'number', unit: 'мм', value: '17' },
+  ] },
+  { id: 'operations', title: 'Операции и ограничения', parameters: [
+    { id: 'printColors', label: 'Количество цветов печати', format: 'number', value: '2' },
+    { id: 'printSide', label: 'Сторона печати', format: 'text', value: 'Внешняя сторона короба' },
+    { id: 'dieCutting', label: 'Высечка', format: 'text', value: 'Плоская высечка' },
+    { id: 'folderGluer', label: 'Фальцесклейка', format: 'text', value: 'Нет' },
+    { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
+  ] },
+]
+
 export const wardTemplate: EquipmentParameterGroup[] = [
   { id: 'general', title: 'Общие сведения', parameters: [
     { id: 'name', label: 'Название', format: 'text', value: 'WARD' },
