@@ -89,6 +89,8 @@ export function gridRoute(box: BoxInput, settings: GridSettings, model: GridMode
   if (blocked.length) return {line,blocked,review,sheet:null,area:null,assembly:settings.assembly}
   const selection = {printing:'',cutting:line.id,finishing:''}
   const limits = layoutLimits(selection)
+  const flatbed=machines.flatbed!.some(item=>item.id===line.id)
+  if(flatbed){limits.maxX=Math.min(limits.maxX,1200);limits.maxY=Math.min(limits.maxY,1000);limits.minX=Math.max(limits.minX,500);limits.minY=Math.max(limits.minY,500)}
   const pieces = model.strips.flatMap(strip=>Array.from({length:strip.quantity},()=>strip)).sort((a,b)=>b.length-a.length)
   const maxX = Math.min(limits.maxX-limits.left-limits.right,limits.workingX)
   const maxY = Math.min(limits.maxY-limits.top-limits.bottom,limits.workingY)
@@ -110,9 +112,9 @@ export function gridRoute(box: BoxInput, settings: GridSettings, model: GridMode
     return rows.flatMap(row=>row.items)
   }
   let best: GridSheet|null=null
-  const widths=line.id==='kongsberg' ? [maxX] : [...new Set([pieces[0]!.length,maxX,...Array.from({length:Math.max(0,Math.floor((maxX-pieces[0]!.length)/20))},(_,i)=>pieces[0]!.length+i*20)])]
+  const widths=line.id==='kongsberg' ? [maxX] : flatbed ? Array.from({length:Math.max(0,Math.floor(maxX)-Math.ceil(Math.max(limits.minX-limits.left-limits.right,pieces[0]!.length))+1)},(_,i)=>Math.ceil(Math.max(limits.minX-limits.left-limits.right,pieces[0]!.length))+i) : [...new Set([pieces[0]!.length,maxX,...Array.from({length:Math.max(0,Math.floor((maxX-pieces[0]!.length)/20))},(_,i)=>pieces[0]!.length+i*20)])]
   if (pieces[0]!.length<=maxX&&maxRows>0) for (const usableX of widths) {
-    const upper=Math.min(100,Math.floor(usableX*maxRows/pieces.reduce((sum,piece)=>sum+piece.length,0)))
+    const upper=Math.min(flatbed?50:100,Math.floor(usableX*maxRows/pieces.reduce((sum,piece)=>sum+piece.length,0)))
     for(let kits=1;kits<=upper;kits++) {
       const items=pack(kits,usableX)
       if(!items) continue
@@ -122,17 +124,6 @@ export function gridRoute(box: BoxInput, settings: GridSettings, model: GridMode
       const area=sheetX*sheetY/kits/1e6
       if(!best||area<best.area-1e-9||Math.abs(area-best.area)<1e-9&&sheetX*sheetY<best.sheetX*best.sheetY) best={sheetX,sheetY,kits,area,items,left:limits.left,top:limits.top}
     }
-  }
-  // Prefer standard die-cut sheets when a complete kit fits the machine's field.
-  if(machines.flatbed!.some(item=>item.id===line.id)){
-    let preferred:GridSheet|null=null
-    for(const [sheetX,sheetY] of [[1000,1000],[1200,1000],[1000,1200]]){
-      if(sheetX!<limits.minX||sheetY!<limits.minY||sheetX!>limits.maxX||sheetY!>limits.maxY)continue
-      const usableX=Math.min(sheetX!-limits.left-limits.right,limits.workingX),usableY=Math.min(sheetY!-limits.top-limits.bottom,limits.workingY),rows=Math.floor(usableY/model.height)
-      const upper=Math.min(100,Math.floor(usableX*rows/pieces.reduce((sum,piece)=>sum+piece.length,0)))
-      for(let kits=upper;kits>=1;kits--){const items=pack(kits,usableX,rows);if(!items)continue;const area=sheetX!*sheetY!/kits/1e6;if(!preferred||area<preferred.area-1e-9)preferred={sheetX:sheetX!,sheetY:sheetY!,kits,area,items,left:limits.left,top:limits.top};break}
-    }
-    if(preferred)best=preferred
   }
   if (!best) blocked.push('Полный комплект полос не помещается в рабочее поле.')
   if(best) for(const strip of model.strips) {
