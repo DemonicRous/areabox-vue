@@ -31,7 +31,7 @@ const suggestions=computed(()=>{
       </div>
     </fieldset>
     <label class="field">Допуск ячейки, мм<input v-model.number="grid.cellGapMm" class="control" type="number" min="0" step="0.5" /></label>
-    <p class="text-xs text-muted">Ячейка в свету: <strong class="text-ink">{{ model.cellL }} × {{ model.cellW }} мм</strong>. Допуск прибавляется к длине и ширине продукта.</p>
+    <p class="text-xs text-muted">Расчётная ячейка: <strong class="text-ink">{{ model.cellL }} × {{ model.cellW }} мм</strong>. Допуск прибавляется к длине и ширине продукта.</p>
     <div class="grid grid-cols-2 gap-3">
       <label class="field">Колонки<input v-model.number="grid.cols" class="control" type="number" min="1" max="30" step="1" /></label>
       <label class="field">Ряды<input v-model.number="grid.rows" class="control" type="number" min="1" max="30" step="1" /></label>
@@ -40,7 +40,7 @@ const suggestions=computed(()=>{
     <label class="field">Высота решётки, мм<input :value="grid.heightMm || ''" class="control" type="number" min="20" max="2500" :placeholder="`По продукту: ${grid.productHeightMm} мм`" @input="grid.heightMm=Number(($event.target as HTMLInputElement).value)" /></label>
     <p class="text-[11px] text-muted">По умолчанию равна высоте продукта. Очистите поле, чтобы вернуть автоматическую высоту.</p>
     <CatalogSelect v-model="grid.profile" label="Профиль решётки" :options="options" :columns="['Фактическая','Чертёжная']" />
-    <p class="text-[11px] text-muted">Габариты и положение просечек рассчитываются по чертёжной толщине профиля.</p>
+    <p class="text-[11px] text-muted">Расчёт по чертёжной толщине. Полосы укорочены на 2,5 мм с каждого края для посадки в короб; шаг просечек сохраняется.</p>
     <CatalogSelect v-model="grid.assembly" label="Сборка" :options="[{value:'auto',label:'Автоподбор',description:'Premier PCM или ручная сборка'},{value:'premier',label:'Premier PCM'},{value:'manual',label:'Ручная сборка решётки'}]" />
     <details class="text-xs">
       <summary class="min-h-11 cursor-pointer py-3 text-muted">Подбор композиции</summary>

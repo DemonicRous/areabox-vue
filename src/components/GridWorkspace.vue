@@ -31,19 +31,19 @@ function confirm() { if(!current.value || current.value.blocked.length) return; 
       <div class="flex flex-wrap gap-2" role="group" aria-label="Вид решётки"><button v-for="tab in [{id:'plan',label:'Вид сверху'},{id:'strips',label:'Полосы'},{id:'scene',label:'3D'}] as const" :key="tab.id" type="button" class="min-h-11 cursor-pointer rounded-md px-3 text-sm" :class="gridView===tab.id ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-canvas'" :aria-pressed="gridView===tab.id" @click="gridView=tab.id">{{ tab.label }}</button></div>
       <div v-if="gridView==='plan'" class="rounded-xl bg-canvas p-5">
         <svg class="max-h-[480px] w-full" :viewBox="`-25 -25 ${model.length+50} ${model.width+50}`" role="img" aria-label="Вид решётки сверху">
-          <rect x="0" y="0" :width="model.length" :height="model.width" fill="var(--surface)" stroke="var(--muted)" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
-          <rect v-for="n in grid.cols-1" :key="`col-${n}`" :x="n*model.cellL+(n-1)*model.thickness" y="0" :width="model.thickness" :height="model.width" fill="var(--accent)" />
-          <rect v-for="n in grid.rows-1" :key="`row-${n}`" x="0" :y="n*model.cellW+(n-1)*model.thickness" :width="model.length" :height="model.thickness" fill="var(--accent)" />
+          <rect :x="-model.edgeTrim" :y="-model.edgeTrim" :width="model.length+2*model.edgeTrim" :height="model.width+2*model.edgeTrim" fill="var(--surface)" stroke="var(--muted)" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+          <rect v-for="n in grid.cols-1" :key="`col-${n}`" :x="n*model.cellL+(n-1)*model.thickness-model.edgeTrim" y="0" :width="model.thickness" :height="model.width" fill="var(--accent)" />
+          <rect v-for="n in grid.rows-1" :key="`row-${n}`" x="0" :y="n*model.cellW+(n-1)*model.thickness-model.edgeTrim" :width="model.length" :height="model.thickness" fill="var(--accent)" />
         </svg>
       </div>
-      <GridScene v-else-if="gridView==='scene'" :length="grid.productLengthMm || Math.max(1,model.cellL-grid.cellGapMm)" :width="grid.productWidthMm || Math.max(1,model.cellW-grid.cellGapMm)" :height="grid.productHeightMm" :grid-height="model.height" :rows="grid.rows" :cols="grid.cols" :cell-l="model.cellL" :cell-w="model.cellW" :board="model.thickness" />
+      <GridScene v-else-if="gridView==='scene'" :length="grid.productLengthMm || Math.max(1,model.cellL-grid.cellGapMm)" :width="grid.productWidthMm || Math.max(1,model.cellW-grid.cellGapMm)" :height="grid.productHeightMm" :grid-height="model.height" :rows="grid.rows" :cols="grid.cols" :cell-l="model.cellL" :cell-w="model.cellW" :board="model.thickness" :edge-trim="model.edgeTrim" />
       <div v-else class="space-y-5">
         <section v-for="strip in model.strips" :key="strip.name">
           <div class="mb-2 flex flex-wrap justify-between gap-2 text-sm"><h3 class="font-medium">{{ strip.name }} · {{ strip.quantity }} шт.</h3><span class="text-muted">{{ fmt(strip.length) }} × {{ fmt(strip.height) }} мм</span></div>
           <GridStripDrawing :strip="strip" :slot="gridSlotMm" :depth="model.depth" :overcut="gridCutting==='roda'" />
         </section>
       </div>
-      <dl class="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4"><div><dt class="text-muted">Габариты решётки</dt><dd class="mt-1">{{ fmt(model.length) }} × {{ fmt(model.width) }} × {{ fmt(model.height) }} мм</dd></div><div><dt class="text-muted">Ячейка в свету</dt><dd class="mt-1">{{ fmt(model.cellL) }} × {{ fmt(model.cellW) }} мм</dd></div><div><dt class="text-muted">Количество ячеек</dt><dd class="mt-1">{{ grid.rows*grid.cols }}</dd></div><div><dt class="text-muted">Площадь полос / комплект</dt><dd class="mt-1">{{ area(model.pieceArea) }} м²</dd></div></dl>
+      <dl class="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4"><div><dt class="text-muted">Габариты решётки</dt><dd class="mt-1">{{ fmt(model.length) }} × {{ fmt(model.width) }} × {{ fmt(model.height) }} мм</dd></div><div><dt class="text-muted">Расчётная ячейка</dt><dd class="mt-1">{{ fmt(model.cellL) }} × {{ fmt(model.cellW) }} мм</dd></div><div><dt class="text-muted">Количество ячеек</dt><dd class="mt-1">{{ grid.rows*grid.cols }}</dd></div><div><dt class="text-muted">Площадь полос / комплект</dt><dd class="mt-1">{{ area(model.pieceArea) }} м²</dd></div></dl>
     </template>
     <template v-else>
       <h2 class="text-base font-semibold">Раскладка полного комплекта</h2>

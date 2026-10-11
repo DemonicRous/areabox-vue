@@ -2,7 +2,7 @@
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-const props=defineProps<{length:number;width:number;height:number;gridHeight:number;rows:number;cols:number;cellL:number;cellW:number;board:number}>()
+const props=defineProps<{length:number;width:number;height:number;gridHeight:number;rows:number;cols:number;cellL:number;cellW:number;board:number;edgeTrim:number}>()
 const host=ref<HTMLDivElement|null>(null)
 const error=ref('')
 const occupied=ref(new Set<string>())
@@ -22,8 +22,8 @@ function rebuild() {
     mesh.position.set(x,h/2,z);group!.add(mesh)
     const edges=new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry),new THREE.LineBasicMaterial({color:0x6d5634}));edges.position.copy(mesh.position);group!.add(edges)
   }
-  for(let r=1;r<props.rows;r++) strip(totalX*unit,t,0,(-totalZ/2+r*props.cellW+(r-.5)*props.board)*unit)
-  for(let c=1;c<props.cols;c++) strip(t,totalZ*unit,(-totalX/2+c*props.cellL+(c-.5)*props.board)*unit,0)
+  for(let r=1;r<props.rows;r++) strip((totalX-2*props.edgeTrim)*unit,t,0,(-totalZ/2+r*props.cellW+(r-.5)*props.board)*unit)
+  for(let c=1;c<props.cols;c++) strip(t,(totalZ-2*props.edgeTrim)*unit,(-totalX/2+c*props.cellL+(c-.5)*props.board)*unit,0)
   const base=new THREE.Mesh(new THREE.BoxGeometry(totalX*unit+.1,.06,totalZ*unit+.1),new THREE.MeshStandardMaterial({color:0x303b34}));base.position.y=-.04;group.add(base)
   const valid=new Set<string>()
   for(let r=0;r<props.rows;r++) for(let c=0;c<props.cols;c++) {
@@ -55,7 +55,7 @@ onMounted(()=>{
     function animate() { frame=requestAnimationFrame(animate);controls!.update();renderer!.render(scene!,camera!) };animate()
   } catch { error.value='3D недоступно в этом браузере. Чертежи и расчёты доступны в других видах.' }
 })
-watch(()=>[props.length,props.width,props.height,props.gridHeight,props.rows,props.cols,props.cellL,props.cellW,props.board],rebuild)
+watch(()=>[props.length,props.width,props.height,props.gridHeight,props.rows,props.cols,props.cellL,props.cellW,props.board,props.edgeTrim],rebuild)
 onBeforeUnmount(()=>{cancelAnimationFrame(frame);observer?.disconnect();controls?.dispose();disposeGroup();renderer?.dispose()})
 </script>
 <template>

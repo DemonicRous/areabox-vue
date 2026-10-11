@@ -8,20 +8,24 @@ export const gridSlotWidth = (cuttingId: string) => cuttingId==='roda' ? 7 : 6
 
 export interface GridSettings { rows: number; cols: number; heightMm: number; profile: ProfileId; clearanceMm: number; productLengthMm: number; productWidthMm: number; productHeightMm: number; cellGapMm: number; slotMm: number; assembly: 'auto' | 'premier' | 'manual' }
 export interface GridStrip { name: string; length: number; height: number; quantity: number; slots: number[]; fromTop: boolean; points: number[][] }
-export interface GridModel { errors: string[]; width: number; length: number; height: number; cellL: number; cellW: number; thickness: number; depth: number; strips: GridStrip[]; pieceArea: number }
+export interface GridModel { errors: string[]; width: number; length: number; height: number; cellL: number; cellW: number; thickness: number; edgeTrim: number; depth: number; strips: GridStrip[]; pieceArea: number }
 export function calculateGrid(_box: BoxInput, settings: GridSettings): GridModel {
   const errors: string[] = []
   const profile = cardboardProfiles.find(item=>item.id===settings.profile)
   const t = profile?.drawingThicknessMm ?? NaN
   const actualThickness = profile?.actualThicknessMm ?? NaN
   const cellL = settings.productLengthMm+settings.cellGapMm, cellW = settings.productWidthMm+settings.cellGapMm
-  const length = cellL*settings.cols+t*(settings.cols-1), width = cellW*settings.rows+t*(settings.rows-1)
+  // Shorten the strips symmetrically to leave the seating gap inside the box.
+  // Slot pitch stays unchanged; both the first center and the far edge shift.
+  const edgeTrim = settings.clearanceMm/2
+  const length = cellL*settings.cols+t*(settings.cols-1)-2*edgeTrim, width = cellW*settings.rows+t*(settings.rows-1)-2*edgeTrim
   const height = settings.heightMm===0 ? settings.productHeightMm : settings.heightMm
   if (![settings.rows,settings.cols].every(n=>Number.isInteger(n)&&n>=1&&n<=30) || settings.rows*settings.cols<2) errors.push('Ряды и колонки: целые числа 1–30, не менее двух ячеек.')
   if (![settings.productLengthMm,settings.productWidthMm,settings.productHeightMm].every(n=>Number.isFinite(n)&&n>0&&n<=2500)) errors.push('Габариты продукта: положительные числа до 2500 мм.')
   if (![settings.clearanceMm,settings.cellGapMm].every(n=>Number.isFinite(n)&&n>=0)) errors.push('Допуск ячейки и запас короба должны быть неотрицательными числами.')
   if (!Number.isFinite(height) || height<20 || height>2500) errors.push('Высота решётки: от 20 до 2500 мм.')
   if (!Number.isFinite(t) || !Number.isFinite(settings.slotMm) || settings.slotMm<actualThickness || settings.slotMm>20) errors.push('Просечка должна быть не уже фактической толщины картона и не более 20 мм.')
+  if (![length,width].every(n=>Number.isFinite(n)&&n>0)) errors.push('Посадочный зазор превышает габариты решётки.')
   const depth = height/2+5
   const strips: GridStrip[] = []
   if (!errors.length) {
@@ -30,7 +34,7 @@ export function calculateGrid(_box: BoxInput, settings: GridSettings): GridModel
       ['Поперечная полоса',width,settings.cols-1,settings.rows,cellW,true],
     ] as const) {
       if (!quantity) continue
-      const slots = Array.from({length:count-1},(_,i)=>(i+1)*cell+(i+.5)*t)
+      const slots = Array.from({length:count-1},(_,i)=>(i+1)*cell+(i+.5)*t-edgeTrim)
       if (slots.some(center=>center-settings.slotMm/2<=0||center+settings.slotMm/2>=len) || slots.some((center,i)=>i>0&&center-slots[i-1]!<=settings.slotMm)) errors.push('Просечки пересекаются или выходят за край полосы.')
       const points: number[][] = [[0,0],[len,0],[len,height]]
       for (const center of [...slots].reverse()) points.push([center+settings.slotMm/2,height],[center+settings.slotMm/2,height-depth],[center-settings.slotMm/2,height-depth],[center-settings.slotMm/2,height])
@@ -38,7 +42,7 @@ export function calculateGrid(_box: BoxInput, settings: GridSettings): GridModel
       strips.push({name,length:len,height,quantity,slots,fromTop,points:fromTop?points.map(([x,y])=>[x!,height-y!]):points})
     }
   }
-  return { errors, length,width,height,cellL,cellW,thickness:t,depth,strips,pieceArea:strips.reduce((sum,strip)=>sum+strip.length*strip.height*strip.quantity,0)/1e6 }
+  return { errors, length,width,height,cellL,cellW,thickness:t,edgeTrim,depth,strips,pieceArea:strips.reduce((sum,strip)=>sum+strip.length*strip.height*strip.quantity,0)/1e6 }
 }
 export interface GridItem { x: number; y: number; width: number; height: number; name: string; kit: number }
 export interface GridSheet { sheetX: number; sheetY: number; kits: number; area: number; items: GridItem[]; left: number; top: number }
