@@ -16,6 +16,8 @@ assert.equal(geometry({...box,lengthMm:597},'inline','').flap,40, 'More than 160
 assert.equal(geometry({...box,profile:'E'},'flatbed','').flap,30)
 assert.equal(geometry({...box,profile:'F'},'flatbed','').flap,30)
 assert.equal(geometry(box,'flatbed','').flap,35)
+assert.equal(geometry(box,'rotary','').flap,35)
+assert.equal(geometry({...box,profile:'E'},'rotary','').flap,30)
 assert.equal(geometry({...box,design:'0201-2'},'flatbed','godswill-gts-3000').flap,45)
 assert.equal(geometry({ ...box, profile: 'BC' }, 'inline', '').slot, 10)
 assert.equal(geometry(box, 'flatbed', '').slot, 6)
