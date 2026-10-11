@@ -1,38 +1,21 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { MagnifyingGlassPlusIcon, ArrowsPointingInIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { MagnifyingGlassPlusIcon, ArrowsPointingInIcon, ArrowsRightLeftIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { drawingMeasurements, type Geometry } from '../domain/production'
 const props = defineProps<{ geometry: Geometry; names: string[]; review: string[] }>()
 const zoom = ref(false)
-const hoveredPanel = ref<number | null>(null)
-const hoverDimensions = computed(() => {
-  if (hoveredPanel.value === null) return null
-  const index = hoveredPanel.value
-  const panel = measurements.value.panels[index]!
-  const segment = panels.value[index]!
-  const top = geometry.value.panelEdges?.[index]?.[0] ?? 0
-  const y1 = top + panel.top
-  const y2 = y1 + panel.body
-  return {
-    x: (segment.start + segment.end) / 2,
-    font: Math.min(segment.value * .09, geometry.value.width * .018),
-    segments: [
-      { name: 'Верхний клапан', start: top, end: y1, value: panel.top },
-      { name: 'Корпус', start: y1, end: y2, value: panel.body },
-      { name: 'Нижний клапан', start: y2, end: y2 + panel.bottom, value: panel.bottom },
-    ].filter(item => item.value > 0),
-  }
-})
+const dimensions = ref(true)
 const activePart = ref(0)
 const selectedPanel = ref(0)
 const panelDetailsOpen = ref(false)
 const geometry = computed(()=>props.geometry.parts?.[activePart.value]?.geometry ?? props.geometry)
 watch(()=>props.geometry,()=>{ activePart.value=0; zoom.value=false })
 const measurements = computed(() => drawingMeasurements(geometry.value))
-watch(geometry, () => { selectedPanel.value = 0; hoveredPanel.value = null })
+watch(geometry, () => { selectedPanel.value = 0 })
 const panelDimensions = computed(() => measurements.value.panels[selectedPanel.value])
 const slot = computed(() => measurements.value.slots[0])
 const pad = computed(() => Math.max(90, geometry.value.width * .10))
+const font = computed(() => pad.value * .19)
 const fmt = (value: number) => value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })
 const panels = computed(() => {
   let x = geometry.value.flap
@@ -51,33 +34,40 @@ const detailYRight = computed(() => !slot.value?.offset || !slot.value.leftIsDee
     <p v-else-if="geometry.count===2" class="text-xs text-muted">Одна половина · 2 шт. на короб</p>
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="min-w-0" :title="names.join(' → ')"><span class="text-sm font-semibold tabular-nums">{{ fmt(geometry.width) }} × {{ fmt(geometry.height) }} <span class="font-normal text-muted">мм</span></span><span v-if="review.length" class="ml-3 text-xs text-muted">Предварительно</span></div>
-      <div class="flex items-center gap-1 rounded-lg bg-canvas p-1">
+      <div class="flex items-center gap-1 rounded-lg bg-canvas p-1"><button type="button" :aria-pressed="dimensions" class="drawing-control flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-xs" :class="dimensions ? 'bg-accent-soft text-accent' : 'text-muted hover:text-ink'" @click="dimensions=!dimensions"><ArrowsRightLeftIcon class="size-4" />Размеры</button>
       <button class="drawing-control flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-xs text-muted hover:text-ink" type="button" :aria-pressed="zoom" @click="zoom=!zoom">
         <ArrowsPointingInIcon v-if="zoom" class="size-4" /><MagnifyingGlassPlusIcon v-else class="size-4" />{{ zoom ? 'Вписать' : 'Увеличить' }}
       </button>
     </div>
     </div>
 
-    <div class="relative" @pointerleave="hoveredPanel=null">
     <div class="drawing-canvas overflow-x-auto rounded-xl bg-canvas px-2 py-4 sm:px-4 sm:py-6" :tabindex="zoom ? 0 : undefined" aria-label="Размерный чертёж">
-      <svg class="w-full text-ink" :class="zoom ? 'min-w-[1100px]' : ''" :viewBox="`${-pad*.25} ${-pad*.25} ${geometry.width+pad*.5} ${geometry.height+pad*.5}`" role="group" aria-label="Интерактивная развёртка. Наведите на панель или выберите её для просмотра размеров.">
+      <svg class="w-full text-ink" :class="zoom ? 'min-w-[1100px]' : ''" :viewBox="`${-pad*.45} ${-pad} ${geometry.width+pad*2} ${geometry.height+pad*2}`" role="img" aria-label="Развёртка: размеры панелей сверху, соединительный клапан слева, общая длина снизу, общая высота справа. Все размеры в миллиметрах.">
         <polygon :points="geometry.points.map(point=>point.join(',')).join(' ')" fill="var(--surface)" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+        <g v-for="(segment,index) in (panelDetailsOpen ? panels : [])" :key="`panel-${index}`">
+          <circle :cx="(segment.start+segment.end)/2" :cy="geometry.height/2" :r="font*.8" fill="var(--accent-soft)" />
+          <text :x="(segment.start+segment.end)/2" :y="geometry.height/2+font*.34" :font-size="font" text-anchor="middle" fill="var(--accent)">{{ index+1 }}</text>
+        </g>
         <rect v-if="panelDetailsOpen && panels[selectedPanel]" :x="panels[selectedPanel]!.start" :y="geometry.folds.filter(fold=>fold[0]===fold[2])[selectedPanel]?.[1] ?? 0" :width="panels[selectedPanel]!.value" :height="panelDimensions?.body ?? geometry.body" fill="var(--accent)" opacity=".12" pointer-events="none" />
         <line v-for="(fold,index) in geometry.folds" :key="index" :x1="fold[0]" :y1="fold[1]" :x2="fold[2]" :y2="fold[3]" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" />
-        <rect v-for="(segment,index) in panels" :key="index" :x="segment.start" :y="geometry.panelEdges?.[index]?.[0] ?? 0" :width="segment.value" :height="(geometry.panelEdges?.[index]?.[1] ?? geometry.height)-(geometry.panelEdges?.[index]?.[0] ?? 0)" :fill="hoveredPanel===index ? 'var(--accent)' : 'transparent'" :fill-opacity="hoveredPanel===index ? .12 : 1" class="panel-hit" tabindex="0" role="button" :aria-label="`Панель ${index+1}: корпус ${fmt(measurements.panels[index]!.body)} мм, верхний клапан ${fmt(measurements.panels[index]!.top)} мм, нижний клапан ${fmt(measurements.panels[index]!.bottom)} мм`" :aria-pressed="hoveredPanel===index" @pointerenter="hoveredPanel=index" @focus="hoveredPanel=index" @blur="hoveredPanel=null" @click="hoveredPanel=index; selectedPanel=index" @keydown.enter.prevent="hoveredPanel=index" @keydown.space.prevent="hoveredPanel=index" @keydown.esc="hoveredPanel=null" />
-        <g v-if="hoverDimensions" pointer-events="none" aria-hidden="true">
-          <g v-for="item in hoverDimensions.segments" :key="item.name">
-            <path :d="`M${hoverDimensions.x} ${item.start} V${item.end} M${hoverDimensions.x-hoverDimensions.font*.4} ${item.start} H${hoverDimensions.x+hoverDimensions.font*.4} M${hoverDimensions.x-hoverDimensions.font*.4} ${item.end} H${hoverDimensions.x+hoverDimensions.font*.4}`" fill="none" stroke="var(--accent)" stroke-width="1.2" vector-effect="non-scaling-stroke" />
-            <path :d="`M${hoverDimensions.x-hoverDimensions.font*.2} ${item.start+hoverDimensions.font*.2} l${hoverDimensions.font*.4} ${-hoverDimensions.font*.4} M${hoverDimensions.x-hoverDimensions.font*.2} ${item.end+hoverDimensions.font*.2} l${hoverDimensions.font*.4} ${-hoverDimensions.font*.4}`" fill="none" stroke="var(--accent)" stroke-width="1.2" vector-effect="non-scaling-stroke" />
-            <text :x="hoverDimensions.x+hoverDimensions.font*.65" :y="(item.start+item.end)/2" dominant-baseline="middle" :font-size="hoverDimensions.font" fill="var(--ink)" stroke="var(--surface)" :stroke-width="hoverDimensions.font*.25" paint-order="stroke" stroke-linejoin="round">{{ fmt(item.value) }} мм</text>
-          </g>
+        <g v-if="dimensions">
+        <g v-for="(segment,index) in [{ start: 0, end: geometry.flap, value: geometry.flap }, ...panels]" :key="index">
+          <path :d="`M${segment.start} ${-pad*.08} V${-pad*.58} M${segment.end} ${-pad*.08} V${-pad*.58} M${segment.start} ${-pad*.4} H${segment.end}`" fill="none" stroke="var(--muted)" stroke-width=".8" vector-effect="non-scaling-stroke" />
+          <path :d="`M${segment.start-pad*.03} ${-pad*.34} l${pad*.06} ${-pad*.12} M${segment.end-pad*.03} ${-pad*.34} l${pad*.06} ${-pad*.12}`" fill="none" stroke="var(--muted)" stroke-width=".8" vector-effect="non-scaling-stroke" />
+          <text :x="(segment.start+segment.end)/2" :y="-pad*.62" :font-size="font" text-anchor="middle" fill="var(--ink)" class="dimension-label">{{ fmt(segment.value) }}</text>
+        </g>
+
+        <path :d="`M0 ${geometry.height+pad*.1} V${geometry.height+pad*.62} M${geometry.width} ${geometry.height+pad*.1} V${geometry.height+pad*.62} M0 ${geometry.height+pad*.43} H${geometry.width}`" fill="none" stroke="var(--muted)" stroke-width=".8" vector-effect="non-scaling-stroke" />
+        <path :d="`M${-pad*.03} ${geometry.height+pad*.49} l${pad*.06} ${-pad*.12} M${geometry.width-pad*.03} ${geometry.height+pad*.49} l${pad*.06} ${-pad*.12}`" fill="none" stroke="var(--muted)" stroke-width=".8" vector-effect="non-scaling-stroke" />
+        <text :x="geometry.width/2" :y="geometry.height+pad*.78" :font-size="font" text-anchor="middle" fill="var(--ink)">X · {{ fmt(geometry.width) }}</text>
+        <path :d="`M${geometry.width+pad*.1} 0 H${geometry.width+pad*.64} M${geometry.width+pad*.1} ${geometry.height} H${geometry.width+pad*.64} M${geometry.width+pad*.45} 0 V${geometry.height}`" fill="none" stroke="var(--muted)" stroke-width=".8" vector-effect="non-scaling-stroke" />
+        <text :transform="`translate(${geometry.width+pad*.85},${geometry.height/2}) rotate(90)`" :font-size="font" text-anchor="middle" fill="var(--ink)">Y · {{ fmt(geometry.height) }}</text>
         </g>
       </svg>
     </div>
-    </div>
     <div class="flex flex-wrap justify-between gap-x-4 gap-y-2 text-xs text-muted">
       <div class="flex flex-wrap gap-4"><span class="flex items-center gap-2"><span class="w-5 border-t border-ink" />Рез</span><span class="flex items-center gap-2"><span class="w-5 border-t border-dashed border-accent" />Биговка</span></div>
-      <span>Наведите или нажмите на панель</span>
+      <span>Все размеры · мм</span>
     </div>
     <div class="divide-y divide-line border-t border-line">
       <details class="min-w-0 py-2" @toggle="panelDetailsOpen=($event.target as HTMLDetailsElement).open">
@@ -119,11 +109,9 @@ const detailYRight = computed(() => !slot.value?.offset || !slot.value.leftIsDee
   </div>
 </template>
 <style scoped>
-.panel-hit { cursor: pointer; }
-.panel-hit:focus-visible { stroke: var(--accent); stroke-width: 2; outline: none; vector-effect: non-scaling-stroke; }
 .drawing-control { transition: color 160ms ease, background-color 160ms ease; }
 .drawing-control:focus-visible, .drawing-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.drawing-canvas { background-image: radial-gradient(circle, color-mix(in srgb, var(--muted) 18%, transparent) .65px, transparent .65px); background-size: 20px 20px; }
+.dimension-label { font-variant-numeric: tabular-nums; }
 .drawing-summary { list-style: none; }
 .drawing-summary::-webkit-details-marker { display: none; }
 .drawing-summary:hover { color: var(--accent); }
