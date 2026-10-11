@@ -6,5 +6,10 @@ export const productModels = [
   { id: 'can', label: 'Банка', asset: 'soda-can.glb', preview: 'soda-can.png' },
   { id: 'carton', label: 'Пакет', asset: 'carton.glb', preview: 'carton.png' },
   { id: 'wine-glass', label: 'Бокал', asset: 'glass-wine.glb', preview: 'glass-wine.png' },
+  { id: 'wine', label: 'Вино', asset: 'wine-red.glb', preview: 'wine-red.png' },
+  { id: 'honey', label: 'Мёд', asset: 'honey.glb', preview: 'honey.png' },
+  { id: 'tin', label: 'Консервы', asset: 'can.glb', preview: 'can.png' },
+  { id: 'mug', label: 'Кружка', asset: 'mug.glb', preview: 'mug.png' },
+  { id: 'glass', label: 'Стакан', asset: 'glass.glb', preview: 'glass.png' },
 ] as const
 export type ProductModelId = typeof productModels[number]['id']
