@@ -18,10 +18,12 @@ function toggle(id: string) { opened.value = opened.value === id ? null : id }
       <h2>
         <button type="button" class="flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-3 text-left text-sm font-semibold hover:bg-canvas sm:px-5" :id="`category-${category.id}`" :aria-expanded="opened === category.id" :aria-controls="`panel-${category.id}`" @click="toggle(category.id)">
           <span>{{ category.title }}</span><span class="text-xs font-normal text-muted">{{ category.count }}</span>
-          <ChevronDownIcon class="ml-auto size-4 shrink-0 text-muted transition-transform motion-reduce:transition-none" :class="{ 'rotate-180': opened === category.id }" aria-hidden="true" />
+          <ChevronDownIcon class="ml-auto size-4 shrink-0 text-muted transition-transform duration-300 ease-out motion-reduce:transition-none" :class="{ 'rotate-180': opened === category.id }" aria-hidden="true" />
         </button>
       </h2>
-      <div v-show="opened === category.id" :id="`panel-${category.id}`" role="region" :aria-labelledby="`category-${category.id}`" class="border-t border-line p-3 sm:p-4">
+      <div :id="`panel-${category.id}`" role="region" :aria-labelledby="`category-${category.id}`" :aria-hidden="opened !== category.id" :inert="opened !== category.id" class="grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none" :class="opened === category.id ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'">
+        <div class="min-h-0 overflow-hidden">
+          <div class="border-t border-line p-3 sm:p-4">
         <template v-if="category.id === 'corrugator'">
   <section class="overflow-hidden rounded-xl border border-line bg-surface" aria-labelledby="fosber-title">
     <header class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-4 sm:px-5">
@@ -43,6 +45,8 @@ function toggle(id: string) { opened.value = opened.value === id ? null : id }
   </section>
         </template>
         <p v-else class="px-1 py-4 text-sm text-muted">Линии ещё не добавлены.</p>
+          </div>
+        </div>
       </div>
     </section>
   </div>

@@ -12,6 +12,7 @@
   --color-danger: var(--danger);
 }
 @layer base {
+  html { scrollbar-gutter: stable; @apply bg-canvas; }
   :root { --canvas: #f5f6f7; --surface: #ffffff; --ink: #222a30; --muted: #606b75; --line: #dce1e5; --accent: #216549; --accent-soft: #eaf3ee; --danger: #b13f32; }
   :root.dark { --canvas: #15191c; --surface: #1d2327; --ink: #e7ecef; --muted: #a5afb7; --line: #343e46; --accent: #8acdaf; --accent-soft: #253d32; --danger: #ffaea3; }
   body { @apply min-w-80 bg-canvas font-sans text-sm text-ink antialiased; }
@@ -19,6 +20,9 @@
   :focus-visible { @apply outline-2 outline-offset-2 outline-accent; }
   input, select { @apply caret-accent; }
   * { scrollbar-color: var(--line) var(--canvas); }
+}
+@supports not (scrollbar-gutter: stable) {
+  html { overflow-y: scroll; }
 }
 @layer components {
   .field { @apply flex min-w-0 flex-col gap-2 text-xs font-medium text-muted; }
