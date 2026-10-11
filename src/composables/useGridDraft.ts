@@ -4,7 +4,7 @@ import { calculateGrid, gridRoute, gridSlotWidth } from '../domain/grid'
 import { machines } from '../data/machines'
 import { useBoxDraft } from './useBoxDraft'
 
-export const gridDraft = reactive({ rows: 3, cols: 3, heightMm: 0, profile: 'D' as ProfileId, clearanceMm: 5, productLengthMm: 100, productWidthMm: 100, productHeightMm: 200, cellGapMm: 1, assembly: 'auto' as 'auto' | 'premier' | 'manual' })
+export const gridDraft = reactive({ rows: 3, cols: 3, heightMm: 0, profile: 'D' as ProfileId, clearanceMm: 5, productLengthMm: 60, productWidthMm: 60, productHeightMm: 100, cellGapMm: 1, assembly: 'auto' as 'auto' | 'premier' | 'manual' })
 export const gridCutting = ref('roda')
 export const gridConfirmed = ref(false)
 export const gridView = ref<'plan' | 'strips' | 'scene'>('plan')
