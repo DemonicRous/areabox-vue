@@ -1,20 +1,25 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
-import { fosberTemplate, kongsbergTemplate } from '../data/equipment'
+import { createInlineTemplate, fosberTemplate, kongsbergTemplate, type EquipmentParameterGroup } from '../data/equipment'
+interface Passport { id: string; name: string; groups: EquipmentParameterGroup[] }
+const machines: Record<string, Passport[]> = {
+  corrugator: [{ id: 'fosber', name: 'Fosber', groups: fosberTemplate }],
+  inline: [
+    { id: 'tcy-5pa', name: 'TCY 5PA', groups: createInlineTemplate('5PA') },
+    { id: 'tcy-9pa-2', name: 'TCY 9PA-2', groups: createInlineTemplate('9PA-2') },
+  ],
+  plotter: [{ id: 'kongsberg', name: 'Kongsberg', groups: kongsbergTemplate }],
+}
 const categories = [
   { id: 'corrugator', title: 'Гофроагрегат', count: 1 },
-  { id: 'inline', title: 'InLine', count: 0 },
+  { id: 'inline', title: 'Инлайн', count: 2 },
   { id: 'flatbed', title: 'Плоская высечка', count: 0 },
   { id: 'rotary', title: 'Ротационная высечка', count: 0 },
   { id: 'plotter', title: 'Плоттер', count: 1 },
 ] as const
 const opened = ref<string | null>('corrugator')
 function toggle(id: string) { opened.value = opened.value === id ? null : id }
-function passport(id: string) {
-  return id === 'corrugator' ? { id: 'fosber', name: 'Fosber', groups: fosberTemplate }
-    : { id: 'kongsberg', name: 'Kongsberg', groups: kongsbergTemplate }
-}
 </script>
 <template>
   <h1 class="mb-5 text-lg font-semibold">Оборудование</h1>
@@ -29,15 +34,15 @@ function passport(id: string) {
       <div :id="`panel-${category.id}`" role="region" :aria-labelledby="`category-${category.id}`" :aria-hidden="opened !== category.id" :inert="opened !== category.id" class="grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none" :class="opened === category.id ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'">
         <div class="min-h-0 overflow-hidden">
           <div class="border-t border-line p-3 sm:p-4">
-        <template v-if="category.id === 'corrugator' || category.id === 'plotter'">
-  <section class="overflow-hidden rounded-xl border border-line bg-surface" :aria-labelledby="`${passport(category.id).id}-title`">
+        <div v-if="machines[category.id]?.length" class="space-y-4">
+  <section v-for="machine in machines[category.id]" :key="machine.id" class="overflow-hidden rounded-xl border border-line bg-surface" :aria-labelledby="`${machine.id}-title`">
     <header class="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-4 sm:px-5">
-      <h3 :id="`${passport(category.id).id}-title`" class="text-base font-semibold">{{ passport(category.id).name }}</h3>
+      <h3 :id="`${machine.id}-title`" class="text-base font-semibold">{{ machine.name }}</h3>
       <span class="rounded-md bg-canvas px-2.5 py-1.5 text-xs text-muted">Шаблон параметров</span>
     </header>
     <div class="grid lg:grid-cols-2">
-      <section v-for="group in passport(category.id).groups" :key="group.id" class="border-b border-line p-4 sm:p-5" :aria-labelledby="`${passport(category.id).id}-${group.id}`">
-        <h4 :id="`${passport(category.id).id}-${group.id}`" class="mb-4 text-sm font-semibold">{{ group.title }}</h4>
+      <section v-for="group in machine.groups" :key="group.id" class="border-b border-line p-4 sm:p-5" :aria-labelledby="`${machine.id}-${group.id}`">
+        <h4 :id="`${machine.id}-${group.id}`" class="mb-4 text-sm font-semibold">{{ group.title }}</h4>
         <dl class="space-y-4">
           <div v-for="parameter in group.parameters" :key="parameter.id" class="grid items-baseline gap-x-4 gap-y-1 text-sm" :class="['profiles', 'fluteDirection'].includes(parameter.id) ? 'grid-cols-1' : 'grid-cols-[minmax(0,1fr)_auto]'">
             <dt class="text-muted">{{ parameter.label }}<span v-if="parameter.unit" class="ml-1 text-xs">({{ parameter.unit }})</span><span v-if="parameter.format === 'range'" class="mt-1 block text-xs">мин. / макс.</span></dt>
@@ -48,7 +53,7 @@ function passport(id: string) {
     </div>
     <p class="px-4 py-3 text-xs text-muted sm:px-5">Прочерк — параметр не задан.</p>
   </section>
-        </template>
+        </div>
         <p v-else class="px-1 py-4 text-sm text-muted">Линии ещё не добавлены.</p>
           </div>
         </div>

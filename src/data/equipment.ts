@@ -14,6 +14,39 @@ export interface EquipmentParameterGroup {
   parameters: EquipmentParameter[]
 }
 
+export function createInlineTemplate(model: string): EquipmentParameterGroup[] {
+  return [
+    { id: 'general', title: 'Общие сведения', parameters: [
+      { id: 'name', label: 'Производитель', format: 'text', value: 'TCY' },
+      { id: 'model', label: 'Модель', format: 'text', value: model },
+      { id: 'profiles', label: 'Доступные профили картона', format: 'text' },
+      { id: 'designs', label: 'Доступные конструкции', format: 'text' },
+    ] },
+    { id: 'feed', title: 'Формат подачи', parameters: [
+      { id: 'sheetX', label: 'Заготовка · X', format: 'range', unit: 'мм' },
+      { id: 'sheetY', label: 'Заготовка · Y', format: 'range', unit: 'мм' },
+      { id: 'fluteDirection', label: 'Направление гофры относительно X / Y', format: 'text' },
+      { id: 'feedExtraX', label: 'Припуск подачи · X', format: 'number', unit: 'мм' },
+      { id: 'feedExtraY', label: 'Припуск подачи · Y', format: 'number', unit: 'мм' },
+    ] },
+    { id: 'box', title: 'Панели и клапаны', parameters: [
+      { id: 'panelL', label: 'Панель L между биговками', format: 'range', unit: 'мм' },
+      { id: 'panelW', label: 'Панель W между биговками', format: 'range', unit: 'мм' },
+      { id: 'bodyH', label: 'Корпус H между биговками', format: 'range', unit: 'мм' },
+      { id: 'glue', label: 'Соединительный клапан', format: 'range', unit: 'мм' },
+      { id: 'slot', label: 'Ширина просечки', format: 'range', unit: 'мм' },
+    ] },
+    { id: 'operations', title: 'Операции и ограничения', parameters: [
+      { id: 'printColors', label: 'Количество цветов печати', format: 'number' },
+      { id: 'printSide', label: 'Сторона печати', format: 'text' },
+      { id: 'slotter', label: 'Слоттер', format: 'text' },
+      { id: 'dieCutting', label: 'Высечка', format: 'text' },
+      { id: 'folderGluer', label: 'Фальцесклейка', format: 'text' },
+      { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
+    ] },
+  ]
+}
+
 export const kongsbergTemplate: EquipmentParameterGroup[] = [
   { id: 'general', title: 'Общие сведения', parameters: [
     { id: 'name', label: 'Название', format: 'text', value: 'Kongsberg' },
