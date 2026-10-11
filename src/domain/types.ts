@@ -15,6 +15,7 @@ export interface BoxInput {
   widthMm: number
   heightMm: number
   hasPrinting: boolean
+  creaseLevel: 'same' | 'different'
   printType: PrintType
   printColors: number
 }

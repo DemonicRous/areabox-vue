@@ -4,6 +4,10 @@ import { useBoxDraft } from '../composables/useBoxDraft'
 import { designs, cardboardProfiles } from '../data/catalog'
 import CatalogSelect from './CatalogSelect.vue'
 import type { PrintType } from '../domain/types'
+const creaseOptions: { value: 'same' | 'different'; label: string }[] = [
+  { value: 'same', label: 'На одной высоте' },
+  { value: 'different', label: 'На разном уровне' },
+]
 const printOptions: { value: PrintType; label: string }[] = [
   { value: 'digital', label: 'Цифровая печать' },
   { value: 'flexo', label: 'Флексопечать' },
@@ -43,6 +47,7 @@ const errors = computed(() => {
         <label v-for="field in dimensions" :key="field.key" class="field">{{ field.label }}<input v-model.number="draft[field.key]" class="control tabular-nums" type="number" inputmode="decimal" :min="field.min" max="2500" step="1" :aria-invalid="typeof draft[field.key] !== 'number' || draft[field.key] < field.min || draft[field.key] > 2500 || (field.key === 'widthMm' && draft.widthMm > draft.lengthMm)" :aria-describedby="errors.length ? 'box-errors' : undefined" /></label>
       </div></fieldset>
       <CatalogSelect v-model="draft.profile" label="Профиль картона" :options="profileOptions" :columns="['Фактическая', 'Чертёжная']" />
+      <CatalogSelect v-model="draft.creaseLevel" label="Расположение биговок" :options="creaseOptions" />
       <div class="space-y-4 border-t border-line pt-4">
         <label class="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-medium">
           <input v-model="draft.hasPrinting" type="checkbox" class="size-4 shrink-0 accent-accent" aria-controls="box-printing" />
