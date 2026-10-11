@@ -52,9 +52,18 @@ export function createInlineTemplate(model: string): EquipmentParameterGroup[] {
       sheetX: '915 / 2500',
       sheetY: '350 / 1200',
       fluteDirection: 'X — поперёк гофры, Y — вдоль гофры',
+      panelL: '240 / 950',
+      panelW: '150 / 950',
+      bodyH: '90 / 1200',
+      glue: '35 / 40',
+      slot: '8 / 10',
+      printColors: '2',
+      printSide: 'Внешняя сторона короба',
+      dieCutting: 'Слоттер',
+      folderGluer: 'Да',
     }
     for (const group of groups) {
-      group.parameters = group.parameters.filter(parameter => !['feedExtraX', 'feedExtraY'].includes(parameter.id))
+      group.parameters = group.parameters.filter(parameter => !['feedExtraX', 'feedExtraY', 'slotter'].includes(parameter.id))
       for (const parameter of group.parameters) {
         if (values[parameter.id] !== undefined) parameter.value = values[parameter.id]
       }
