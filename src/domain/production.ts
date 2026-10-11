@@ -91,13 +91,14 @@ export function evaluateRoute(input: BoxInput, cutting: string, finishing: strin
     return { blocked: result.blocked.map(reason => `${machine.name}: ${reason}`), review: result.review.map(reason => `${machine.name}: ${reason}`) }
   })
   const blocked = checks.flatMap(check => check.blocked)
+  if (input.hasPrinting && input.printType === 'digital' && technology(cutting) !== 'plotter') blocked.push('После цифровой печати Hanway вырезка доступна только на плоттере')
   if (technology(cutting) !== 'inline' && !finishing) blocked.push('Нет подходящей линии соединения')
   if (finishing && !finishingLines(input, cutting).some(machine => machine.id === finishing)) blocked.push('Способ соединения недоступен для этой конструкции')
   return { selection: { printing, cutting, finishing }, line, names: chain.map(machine => machine.name), geometry: geo, sheet, blocked: [...new Set(blocked)], review: [...new Set(checks.flatMap(check => check.review))] }
 }
 export function productionRoutes(input: BoxInput): ProductionRoute[] {
   const compound = ['0201-2', '0201-4'].includes(input.design)
-  const lines = input.hasPrinting && input.printType === 'digital' ? machines.plotter!
+  const lines = input.hasPrinting && input.printType === 'digital' ? [...machines.flatbed!, ...machines.rotary!, ...machines.plotter!]
     : input.hasPrinting && input.printType === 'flexo' ? [...(compound ? [] : machines.inline!), ...machines.flatbed!, ...machines.rotary!]
     : [...(!input.hasPrinting && !compound ? machines.inline! : []), ...machines.flatbed!, ...machines.rotary!, ...machines.plotter!]
   return lines.map(line => {

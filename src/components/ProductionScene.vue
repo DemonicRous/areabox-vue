@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
-import { ArrowRightIcon, CheckIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { ArrowRightIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import { useBoxDraft } from '../composables/useBoxDraft'
 import { productionSelection as selection, confirmedProduction } from '../composables/useProductionRoute'
 import { evaluateRoute, finishingLines, productionRoutes, technology, type ProductionRoute } from '../domain/production'
@@ -107,12 +107,12 @@ function confirm() {
       </div>
     </section>
     <p v-else-if="available.length" class="py-6 text-center text-xs text-muted">Выберите цепочку, чтобы увидеть раскладку и построить развёртку.</p>
-    <details v-if="unavailable.length" class="mt-4 border-t border-line pt-3">
-      <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-xs text-muted">Недоступные маршруты · {{ unavailable.length }}<ChevronDownIcon class="size-4" aria-hidden="true" /></summary>
+    <section v-if="unavailable.length" class="mt-4 border-t border-line pt-3" aria-label="Недоступные маршруты">
+      <h3 class="py-3 text-xs text-muted">Недоступные маршруты · {{ unavailable.length }}</h3>
       <div v-for="route in unavailable" :key="route.line.id" class="border-t border-line py-3">
-        <p class="text-sm font-medium">{{ route.line.name }}</p>
+        <p class="text-sm font-medium">{{ route.line.name }} <span class="ml-1 text-xs font-normal text-muted">{{ labels[technology(route.line.id)] }}</span></p>
         <ul class="mt-2 space-y-1 text-xs text-muted"><li v-for="reason in route.blocked" :key="reason">{{ reason }}</li></ul>
       </div>
-    </details>
+    </section>
   </div>
 </template>

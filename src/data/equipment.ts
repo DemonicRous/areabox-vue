@@ -213,7 +213,7 @@ export const wardTemplate: EquipmentParameterGroup[] = [
   { id: 'general', title: 'Общие сведения', parameters: [
     { id: 'name', label: 'Название', format: 'text', value: 'WARD' },
     { id: 'model', label: 'Модель', format: 'text' },
-    { id: 'profiles', label: 'Доступные профили картона', format: 'text', value: 'E (Ламинация) · D · B · C · BF · BE · BD · BC' },
+    { id: 'profiles', label: 'Доступные профили картона', format: 'text', value: 'D · B · C · BF · BE · BD · BC' },
     { id: 'designs', label: 'Доступные конструкции', format: 'text', value: 'Любая конструкция' },
   ] },
   { id: 'feed', title: 'Формат подачи', parameters: [
