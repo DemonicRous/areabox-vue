@@ -28,7 +28,7 @@ const detailYRight = computed(() => detailRight.value >= detailLeft.value ? 130 
     </div>
     <p v-if="review.length" class="text-xs text-muted">Предварительная развёртка: часть ограничений маршрута требует проверки.</p>
     <div class="overflow-x-auto bg-canvas" :tabindex="zoom ? 0 : undefined" aria-label="Размерный чертёж">
-      <svg class="w-full text-ink" :class="zoom ? 'min-w-[1100px]' : ''" :viewBox="`${-pad*.45} ${-pad} ${geometry.width+pad*2} ${geometry.height+pad*2}`" role="img" aria-label="Развёртка: размеры панелей сверху, общая длина снизу, общая высота справа. Все размеры в миллиметрах.">
+      <svg class="w-full text-ink" :class="zoom ? 'min-w-[1100px]' : ''" :viewBox="`${-pad*.45} ${-pad} ${geometry.width+pad*2} ${geometry.height+pad*2}`" role="img" aria-label="Развёртка: размеры панелей сверху, соединительный клапан слева, общая длина снизу, общая высота справа. Все размеры в миллиметрах.">
         <polygon :points="geometry.points.map(point=>point.join(',')).join(' ')" fill="var(--surface)" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke" />
         <g v-for="(segment,index) in panels" :key="`panel-${index}`">
           <circle :cx="(segment.start+segment.end)/2" :cy="geometry.height/2" :r="font*.8" fill="var(--accent-soft)" />
@@ -39,6 +39,10 @@ const detailYRight = computed(() => detailRight.value >= detailLeft.value ? 130 
           <path :d="`M${segment.start} ${-pad*.08} V${-pad*.58} M${segment.end} ${-pad*.08} V${-pad*.58} M${segment.start} ${-pad*.4} H${segment.end}`" fill="none" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
           <path :d="`M${segment.start-pad*.03} ${-pad*.34} l${pad*.06} ${-pad*.12} M${segment.end-pad*.03} ${-pad*.34} l${pad*.06} ${-pad*.12}`" fill="none" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
           <text :x="(segment.start+segment.end)/2" :y="-pad*.62" :font-size="font" text-anchor="middle" fill="var(--ink)">{{ fmt(segment.value) }}</text>
+        </g>
+        <g aria-label="Ширина соединительного клапана">
+          <path :d="`M0 ${geometry.height*.5} H${geometry.flap} M${-pad*.03} ${geometry.height*.5+pad*.06} l${pad*.06} ${-pad*.12} M${geometry.flap-pad*.03} ${geometry.height*.5+pad*.06} l${pad*.06} ${-pad*.12} M${geometry.flap/2} ${geometry.height*.5} V${geometry.height*.5+pad*.33} H${geometry.flap+pad*.25}`" fill="none" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
+          <text :x="geometry.flap+pad*.3" :y="geometry.height*.5+pad*.33+font*.34" :font-size="font*.85" fill="var(--ink)">Клапан {{ geometry.flap }} мм</text>
         </g>
         <path :d="`M0 ${geometry.height+pad*.1} V${geometry.height+pad*.62} M${geometry.width} ${geometry.height+pad*.1} V${geometry.height+pad*.62} M0 ${geometry.height+pad*.43} H${geometry.width}`" fill="none" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
         <path :d="`M${-pad*.03} ${geometry.height+pad*.49} l${pad*.06} ${-pad*.12} M${geometry.width-pad*.03} ${geometry.height+pad*.49} l${pad*.06} ${-pad*.12}`" fill="none" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
