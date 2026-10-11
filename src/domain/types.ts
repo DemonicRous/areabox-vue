@@ -1,4 +1,10 @@
-export type ProfileId = 'F' | 'E' | 'D' | 'B' | 'C' | 'BE' | 'BD' | 'BC'
+export type ProfileId = 'F' | 'E' | 'D' | 'B' | 'C' | 'BF' | 'BE' | 'BD' | 'BC'
+export interface CardboardProfile {
+  id: ProfileId
+  actualThicknessMm: number
+  drawingThicknessMm: number
+  creaseDistanceMm: number
+}
 export type DesignId = '0200' | '0201' | '0202' | '0201-2' | '0201-4'
 export type Suitability = 'fit' | 'review' | 'blocked'
 export interface BoxInput {

@@ -1,6 +1,17 @@
-import type { DesignId, ProfileId } from '../domain/types'
+import type { CardboardProfile, DesignId, ProfileId } from '../domain/types'
 
-export const profiles: ProfileId[] = ['F', 'E', 'D', 'B', 'C', 'BE', 'BD', 'BC']
+export const cardboardProfiles: CardboardProfile[] = [
+  { id: 'F', actualThicknessMm: 1, drawingThicknessMm: 1, creaseDistanceMm: 1 },
+  { id: 'E', actualThicknessMm: 1.5, drawingThicknessMm: 2, creaseDistanceMm: 1.5 },
+  { id: 'D', actualThicknessMm: 2.5, drawingThicknessMm: 3, creaseDistanceMm: 2 },
+  { id: 'B', actualThicknessMm: 3, drawingThicknessMm: 3, creaseDistanceMm: 2.5 },
+  { id: 'C', actualThicknessMm: 4, drawingThicknessMm: 4, creaseDistanceMm: 3.5 },
+  { id: 'BF', actualThicknessMm: 4, drawingThicknessMm: 4, creaseDistanceMm: 3.5 },
+  { id: 'BE', actualThicknessMm: 5, drawingThicknessMm: 5, creaseDistanceMm: 4.5 },
+  { id: 'BD', actualThicknessMm: 5.5, drawingThicknessMm: 5, creaseDistanceMm: 5 },
+  { id: 'BC', actualThicknessMm: 7, drawingThicknessMm: 7, creaseDistanceMm: 6.5 },
+]
+export const profiles: ProfileId[] = cardboardProfiles.map(profile => profile.id)
 export const designs: { id: DesignId; title: string }[] = [
   { id: '0200', title: '0200 · без верхних клапанов' },
   { id: '0201', title: '0201 · четырёхклапанный' },
