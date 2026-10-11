@@ -11,7 +11,7 @@ const variants = computed(()=>layoutVariants(draft,productionSelection,geo.value
 const custom = ref(false)
 const cols = ref(1), rows = ref(1), x = ref(0), y = ref(0)
 const result = computed(()=>evaluateLayout(draft,productionSelection,geo.value,cols.value,rows.value,x.value,y.value))
-const fmt = (value: number, digits=3)=>value.toLocaleString('ru-RU',{maximumFractionDigits:digits})
+const fmt = (value: number, digits=3)=>value.toLocaleString('ru-RU',{minimumFractionDigits:digits,maximumFractionDigits:digits})
 function choose(plan: SheetPlan) { cols.value=plan.cols; rows.value=plan.rows; x.value=plan.sheetX; y.value=plan.sheetY; custom.value=false }
 watch(variants,()=>{ const plan=savedLayout.value ?? variants.value[0]; if(plan) choose(plan) },{immediate:true})
 const isSaved = computed(()=>!!savedLayout.value && ['sheetX','sheetY','cols','rows'].every(key=>savedLayout.value![key as keyof SheetPlan]===result.value.plan[key as keyof SheetPlan]))
@@ -40,7 +40,7 @@ function save() { if(!result.value.errors.length) savedLayout.value={...result.v
       <dl class="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4 tabular-nums">
         <div><dt class="text-muted">Заготовок на листе</dt><dd class="mt-1 text-sm font-semibold">{{ result.plan.count }}</dd></div>
         <div><dt class="text-muted">Площадь листа</dt><dd class="mt-1 text-sm font-medium">{{ fmt(x*y/1e6) }} м²</dd></div>
-        <div><dt class="text-muted">Расход на заготовку</dt><dd class="mt-1 text-sm font-medium">{{ fmt(x*y/result.plan.count/1e6,4) }} м²</dd></div>
+        <div><dt class="text-muted">Расход на заготовку</dt><dd class="mt-1 text-sm font-medium">{{ fmt(x*y/result.plan.count/1e6,3) }} м²</dd></div>
         <div><dt class="text-muted">Использование формата</dt><dd class="mt-1 text-sm font-medium">{{ fmt(result.plan.utilization*100,1) }}%</dd></div>
       </dl>
       <p class="text-[11px] text-muted">Использование рассчитано по прямоугольным габаритам развёртки. Поля слева / справа / сверху / снизу: {{ result.limits.left }} / {{ result.limits.right }} / {{ result.limits.top }} / {{ result.limits.bottom }} мм.</p>
@@ -51,7 +51,7 @@ function save() { if(!result.value.errors.length) savedLayout.value={...result.v
       <div class="grid gap-2 sm:grid-cols-2">
         <button v-for="(plan,index) in variants.slice(0,12)" :key="`${plan.cols}-${plan.rows}`" type="button" class="min-h-16 cursor-pointer rounded-md border px-3 py-3 text-left" :class="cols===plan.cols && rows===plan.rows && x===plan.sheetX && y===plan.sheetY ? 'border-accent bg-accent-soft' : 'border-line hover:bg-canvas'" :aria-pressed="cols===plan.cols && rows===plan.rows && x===plan.sheetX && y===plan.sheetY" @click="choose(plan)">
           <span class="flex items-baseline justify-between gap-2 text-sm font-medium"><span>{{ plan.cols }} × {{ plan.rows }} · {{ plan.count }} заготовок</span><span v-if="index===0" class="text-[11px] text-accent">{{ result.limits.tech==='plotter' && productionSelection.printing!=='digital' ? 'Стандартный лист' : 'Минимальный расход' }}</span></span>
-          <span class="mt-1 block text-xs text-muted tabular-nums">{{ plan.sheetX }} × {{ plan.sheetY }} мм · {{ fmt(plan.sheetX*plan.sheetY/plan.count/1e6,4) }} м² / шт.</span>
+          <span class="mt-1 block text-xs text-muted tabular-nums">{{ plan.sheetX }} × {{ plan.sheetY }} мм · {{ fmt(plan.sheetX*plan.sheetY/plan.count/1e6,3) }} м² / шт.</span>
         </button>
       </div>
       <p v-if="variants.length>12" class="mt-2 text-xs text-muted">Показаны 12 вариантов с наименьшим расходом. Другую сетку можно задать вручную.</p>
