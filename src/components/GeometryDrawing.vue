@@ -5,7 +5,24 @@ import { drawingMeasurements, type Geometry } from '../domain/production'
 const props = defineProps<{ geometry: Geometry; names: string[]; review: string[] }>()
 const zoom = ref(false)
 const hoveredPanel = ref<number | null>(null)
-const tooltipPanel = computed(() => hoveredPanel.value === null ? null : measurements.value.panels[hoveredPanel.value])
+const hoverDimensions = computed(() => {
+  if (hoveredPanel.value === null) return null
+  const index = hoveredPanel.value
+  const panel = measurements.value.panels[index]!
+  const segment = panels.value[index]!
+  const top = geometry.value.panelEdges?.[index]?.[0] ?? 0
+  const y1 = top + panel.top
+  const y2 = y1 + panel.body
+  return {
+    x: (segment.start + segment.end) / 2,
+    font: Math.min(segment.value * .09, geometry.value.width * .018),
+    segments: [
+      { name: 'Верхний клапан', start: top, end: y1, value: panel.top },
+      { name: 'Корпус', start: y1, end: y2, value: panel.body },
+      { name: 'Нижний клапан', start: y2, end: y2 + panel.bottom, value: panel.bottom },
+    ].filter(item => item.value > 0),
+  }
+})
 const activePart = ref(0)
 const selectedPanel = ref(0)
 const panelDetailsOpen = ref(false)
@@ -48,14 +65,14 @@ const detailYRight = computed(() => !slot.value?.offset || !slot.value.leftIsDee
         <rect v-if="panelDetailsOpen && panels[selectedPanel]" :x="panels[selectedPanel]!.start" :y="geometry.folds.filter(fold=>fold[0]===fold[2])[selectedPanel]?.[1] ?? 0" :width="panels[selectedPanel]!.value" :height="panelDimensions?.body ?? geometry.body" fill="var(--accent)" opacity=".12" pointer-events="none" />
         <line v-for="(fold,index) in geometry.folds" :key="index" :x1="fold[0]" :y1="fold[1]" :x2="fold[2]" :y2="fold[3]" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" />
         <rect v-for="(segment,index) in panels" :key="index" :x="segment.start" :y="geometry.panelEdges?.[index]?.[0] ?? 0" :width="segment.value" :height="(geometry.panelEdges?.[index]?.[1] ?? geometry.height)-(geometry.panelEdges?.[index]?.[0] ?? 0)" :fill="hoveredPanel===index ? 'var(--accent)' : 'transparent'" :fill-opacity="hoveredPanel===index ? .12 : 1" class="panel-hit" tabindex="0" role="button" :aria-label="`Панель ${index+1}: корпус ${fmt(measurements.panels[index]!.body)} мм, верхний клапан ${fmt(measurements.panels[index]!.top)} мм, нижний клапан ${fmt(measurements.panels[index]!.bottom)} мм`" :aria-pressed="hoveredPanel===index" @pointerenter="hoveredPanel=index" @focus="hoveredPanel=index" @blur="hoveredPanel=null" @click="hoveredPanel=index; selectedPanel=index" @keydown.enter.prevent="hoveredPanel=index" @keydown.space.prevent="hoveredPanel=index" @keydown.esc="hoveredPanel=null" />
+        <g v-if="hoverDimensions" pointer-events="none" aria-hidden="true">
+          <g v-for="item in hoverDimensions.segments" :key="item.name">
+            <path :d="`M${hoverDimensions.x} ${item.start} V${item.end} M${hoverDimensions.x-hoverDimensions.font*.4} ${item.start} H${hoverDimensions.x+hoverDimensions.font*.4} M${hoverDimensions.x-hoverDimensions.font*.4} ${item.end} H${hoverDimensions.x+hoverDimensions.font*.4}`" fill="none" stroke="var(--accent)" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+            <path :d="`M${hoverDimensions.x-hoverDimensions.font*.2} ${item.start+hoverDimensions.font*.2} l${hoverDimensions.font*.4} ${-hoverDimensions.font*.4} M${hoverDimensions.x-hoverDimensions.font*.2} ${item.end+hoverDimensions.font*.2} l${hoverDimensions.font*.4} ${-hoverDimensions.font*.4}`" fill="none" stroke="var(--accent)" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+            <text :x="hoverDimensions.x+hoverDimensions.font*.65" :y="(item.start+item.end)/2" dominant-baseline="middle" :font-size="hoverDimensions.font" fill="var(--ink)" stroke="var(--surface)" :stroke-width="hoverDimensions.font*.25" paint-order="stroke" stroke-linejoin="round">{{ fmt(item.value) }} мм</text>
+          </g>
+        </g>
       </svg>
-    </div>
-    <div v-if="tooltipPanel" class="pointer-events-none absolute left-3 top-3 z-10 w-56 rounded-lg bg-surface px-4 py-3 text-xs shadow-lg" role="status" aria-live="polite">
-      <dl class="space-y-2 tabular-nums">
-        <div class="flex justify-between gap-3"><dt class="text-muted">Высота корпуса</dt><dd class="font-medium">{{ fmt(tooltipPanel.body) }} мм</dd></div>
-        <div class="flex justify-between gap-3"><dt class="text-muted">Верхний клапан</dt><dd class="font-medium">{{ fmt(tooltipPanel.top) }} мм</dd></div>
-        <div class="flex justify-between gap-3"><dt class="text-muted">Нижний клапан</dt><dd class="font-medium">{{ fmt(tooltipPanel.bottom) }} мм</dd></div>
-      </dl>
     </div>
     </div>
     <div class="flex flex-wrap justify-between gap-x-4 gap-y-2 text-xs text-muted">
