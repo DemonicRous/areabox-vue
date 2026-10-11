@@ -58,10 +58,26 @@ export function createPrintingTemplate(name: 'Pinlong' | 'Цифровая пе�
       sheetY: '100 / 1600',
       fluteDirection: 'X — поперёк гофры, Y — вдоль гофры',
       printSide: 'Любая сторона, включая печать с двух сторон',
+      marginLeft: '50',
+      marginRight: '50',
+      marginTop: '50',
+      marginBottom: '50',
+      workingX: String(2500 - 50 - 50),
+      workingY: String(1600 - 50 - 50),
     }
     for (const group of groups) {
       for (const parameter of group.parameters) {
         if (values[parameter.id] !== undefined) parameter.value = values[parameter.id]
+      }
+    }
+  }
+  if (name === 'Pinlong') {
+    const margins: Record<string, string> = {
+      marginLeft: '10', marginRight: '10', marginTop: '8', marginBottom: '17',
+    }
+    for (const group of groups) {
+      for (const parameter of group.parameters) {
+        if (margins[parameter.id] !== undefined) parameter.value = margins[parameter.id]
       }
     }
   }
