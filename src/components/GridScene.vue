@@ -5,9 +5,17 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { ArrowPathIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, MinusIcon, PlusIcon, PauseIcon, PlayIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import type { GridStrip } from '../domain/grid'
 import { gridStripMeshGeometry, gridCameraTransition, gridCameraPose } from '../domain/gridScene'
+import ProductModelPicker from './ProductModelPicker.vue'
+import { productModels } from '../data/productModels'
+import { fitProductModel } from '../domain/productModel'
+import { loadProductModel } from '../domain/loadProductModel'
+import { gridProductModel, gridEnvironment } from '../composables/useGridDraft'
+const modelLoading=ref(false),modelError=ref(''),skyLoading=ref(false),skyError=ref('')
+const environments=[{id:'studio',label:'Студия'},{id:'day',label:'День'},{id:'morning',label:'Утро'},{id:'night',label:'Ночь'},{id:'space',label:'Космос'},{id:'alien',label:'Другое небо'}]
+let modelSource:THREE.Group|null=null,modelRequest=0,skyRequest=0,skyTexture:THREE.Texture|null=null
 const props=defineProps<{length:number;width:number;height:number;gridHeight:number;rows:number;cols:number;cellL:number;cellW:number;board:number;edgeTrim:number;strips:GridStrip[]}>()
 type View='perspective'|'top'|'front'|'side'
-type Product={mesh:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>;progress:number;delay:number;baseY:number;shadow:THREE.Mesh<THREE.PlaneGeometry,THREE.MeshBasicMaterial>}
+type Product={mesh:THREE.Group;materials:THREE.Material[];progress:number;delay:number;baseY:number;shadow:THREE.Mesh<THREE.PlaneGeometry,THREE.MeshBasicMaterial>}
 const host=ref<HTMLDivElement|null>(null),error=ref(''),ready=ref(false)
 const occupied=ref(new Set<number>()),selected=ref(0),hovered=ref<number|null>(null)
 const expanded=ref(false),exploded=ref(false),rotating=ref(false),view=ref<View|null>('perspective')
@@ -24,7 +32,7 @@ let frame=0,lastTime=0,visible=true,disposed=false,unit=1,totalX=1,totalZ=1,asse
 let pointerStart:{x:number;y:number;id:number}|null=null
 const pointers=new Set<number>(),raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2()
 let targets:THREE.Mesh[]=[],products=new Map<number,Product>(),strips:THREE.Group[]=[],highlight:THREE.Mesh|undefined
-let productGeometry:THREE.BoxGeometry|undefined,contactTexture:THREE.CanvasTexture|undefined
+let productTemplate:THREE.Group|undefined,contactTexture:THREE.CanvasTexture|undefined
 let assemblyTween:{from:number;to:number;start:number}|null=null
 let tween:{orbit:ReturnType<typeof gridCameraTransition>;start:number;duration:number}|null=null
 const reduced=window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -33,7 +41,8 @@ function disposeGroup() {
   const geometries=new Set<THREE.BufferGeometry>(),materials=new Set<THREE.Material>()
   group?.traverse(object=>{if(object instanceof THREE.Mesh||object instanceof THREE.LineSegments){geometries.add(object.geometry);(Array.isArray(object.material)?object.material:[object.material]).forEach(material=>materials.add(material))}})
   targets.forEach(target=>{geometries.add(target.geometry);(Array.isArray(target.material)?target.material:[target.material]).forEach(material=>materials.add(material))})
-  if(productGeometry)geometries.add(productGeometry)
+  productTemplate?.traverse(object=>{if(object instanceof THREE.Mesh){geometries.add(object.geometry);(Array.isArray(object.material)?object.material:[object.material]).forEach(material=>materials.add(material))}})
+  productTemplate=undefined
   geometries.forEach(geometry=>geometry.dispose());materials.forEach(material=>material.dispose())
   if(group)scene?.remove(group)
   group=undefined;targets=[];products.clear();strips=[];highlight=undefined
@@ -41,9 +50,9 @@ function disposeGroup() {
 function applyTheme() {
   if(!scene||!renderer)return
   const dark=document.documentElement.classList.contains('dark')
-  scene.background=new THREE.Color(dark?0x151c20:0xf2f4f1)
+  scene.background=skyTexture??new THREE.Color(dark?0x151c20:0xf2f4f1)
   const floor=group?.getObjectByName('floor') as THREE.Mesh<THREE.PlaneGeometry,THREE.MeshStandardMaterial>|undefined
-  if(floor)floor.material.color.setHex(dark?0x202a2c:0xe3e8e1)
+  if(floor){floor.scale.set(skyTexture?totalX*unit*1.35/80:1,skyTexture?totalZ*unit*1.35/80:1,1);floor.material.color.setHex(dark?0x202a2c:0xe3e8e1)}
   invalidate()
 }
 function moveCamera(position:THREE.Vector3,target:THREE.Vector3,duration=520) {
@@ -78,17 +87,37 @@ function zoom(factor:number) {
   const distance=THREE.MathUtils.clamp(offset.length()*factor,controls.minDistance,controls.maxDistance)
   moveCamera(controls.target.clone().add(offset.normalize().multiplyScalar(distance)),controls.target.clone())
 }
-function addProduct(index:number,delay=0) {
-  if(products.has(index)||!group||!productGeometry)return
-  const row=Math.floor(index/props.cols),col=index%props.cols
-  const material=new THREE.MeshStandardMaterial({color:0x699f97,roughness:.5,transparent:true,opacity:0,depthWrite:false})
-  const mesh=new THREE.Mesh(productGeometry,material)
-  mesh.position.set((-totalX/2+col*(props.cellL+props.board)+props.cellL/2)*unit,props.height*unit/2,(-totalZ/2+row*(props.cellW+props.board)+props.cellW/2)*unit)
-  // Transparent objects must not cast an opaque shadow while fading.
-  mesh.castShadow=false;mesh.receiveShadow=false;mesh.visible=false;group.add(mesh)
-  const shadow=new THREE.Mesh(new THREE.PlaneGeometry(props.length*unit*1.3,props.width*unit*1.3),new THREE.MeshBasicMaterial({map:contactTexture,transparent:true,opacity:0,depthWrite:false}))
-  shadow.rotation.x=-Math.PI/2;shadow.position.set(mesh.position.x,-.025,mesh.position.z);shadow.visible=false;group.add(shadow)
-  products.set(index,{mesh,shadow,progress:0,delay:performance.now()+delay,baseY:props.height*unit/2})
+function prepareProduct(){
+  if(modelSource)productTemplate=fitProductModel(modelSource,props.length*unit,props.width*unit,props.height*unit)
+  else {productTemplate=new THREE.Group();const mesh=new THREE.Mesh(new THREE.BoxGeometry(props.length*unit,props.height*unit,props.width*unit),new THREE.MeshStandardMaterial({color:0x699f97,roughness:.5}));mesh.position.y=props.height*unit/2;productTemplate.add(mesh)}
+}
+function replaceProducts(){
+  const geometries=new Set<THREE.BufferGeometry>(),materials=new Set<THREE.Material>()
+  const collect=(root:THREE.Object3D)=>root.traverse(object=>{if(object instanceof THREE.Mesh){geometries.add(object.geometry);(Array.isArray(object.material)?object.material:[object.material]).forEach(m=>materials.add(m))}})
+  products.forEach(p=>{group?.remove(p.mesh,p.shadow);collect(p.mesh);collect(p.shadow)})
+  if(productTemplate)collect(productTemplate)
+  geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());products.clear();prepareProduct();occupied.value.forEach(i=>addProduct(i));invalidate()
+}
+async function changeProduct(){
+  const request=++modelRequest,item=productModels.find(p=>p.id===gridProductModel.value)!
+  modelError.value='';modelLoading.value=!!item.asset
+  try{const source=item.asset?await loadProductModel(`${import.meta.env.BASE_URL}models/products/${item.asset}`):null;if(disposed||request!==modelRequest)return;modelSource=source;replaceProducts()}
+  catch{if(disposed||request!==modelRequest)return;modelSource=null;replaceProducts();modelError.value='Не удалось загрузить модель. Используется коробочка.'}
+  finally{if(request===modelRequest&&!disposed)modelLoading.value=false}
+}
+async function changeEnvironment(){
+  const request=++skyRequest,id=gridEnvironment.value;skyError.value='';skyLoading.value=id!=='studio'
+  try{const texture=id==='studio'?null:await new THREE.TextureLoader().loadAsync(`${import.meta.env.BASE_URL}skyboxes/skybox-${id}.png`);if(disposed||request!==skyRequest){texture?.dispose();return}if(texture){texture.mapping=THREE.EquirectangularReflectionMapping;texture.colorSpace=THREE.SRGBColorSpace}skyTexture?.dispose();skyTexture=texture;applyTheme()}
+  catch{if(!disposed&&request===skyRequest)skyError.value='Не удалось загрузить окружение.'}
+  finally{if(!disposed&&request===skyRequest)skyLoading.value=false}
+}
+function addProduct(index:number,delay=0){
+  if(products.has(index)||!group||!productTemplate)return
+  const row=Math.floor(index/props.cols),col=index%props.cols,mesh=productTemplate.clone(true),materials:THREE.Material[]=[]
+  mesh.traverse(object=>{if(object instanceof THREE.Mesh){const clone=(original:THREE.Material)=>{const material=original.clone();material.userData.baseOpacity=material.opacity;material.userData.baseTransparent=material.transparent;material.userData.baseDepthWrite=material.depthWrite;material.transparent=true;material.opacity=0;material.depthWrite=false;materials.push(material);return material};object.material=Array.isArray(object.material)?object.material.map(clone):clone(object.material);object.castShadow=false;object.receiveShadow=false}})
+  mesh.position.set((-totalX/2+col*(props.cellL+props.board)+props.cellL/2)*unit,0,(-totalZ/2+row*(props.cellW+props.board)+props.cellW/2)*unit);mesh.visible=false;group.add(mesh)
+  const shadow=new THREE.Mesh(new THREE.PlaneGeometry(props.length*unit*1.3,props.width*unit*1.3),new THREE.MeshBasicMaterial({map:contactTexture,transparent:true,opacity:0,depthWrite:false}));shadow.rotation.x=-Math.PI/2;shadow.position.set(mesh.position.x,-.025,mesh.position.z);shadow.visible=false;group.add(shadow)
+  products.set(index,{mesh,materials,shadow,progress:0,delay:performance.now()+delay,baseY:0})
 }
 function toggle(index:number) {
   if(exploded.value)return
@@ -183,7 +212,7 @@ function rebuild() {
     target.userData.index=i;target.updateMatrixWorld(true);targets.push(target)
   }
   occupied.value=new Set([...occupied.value].filter(index=>index<count.value));selected.value=Math.min(selected.value,count.value-1);hovered.value=null;keyboardSelection.value=false
-  productGeometry=new THREE.BoxGeometry(props.length*unit,props.height*unit,props.width*unit)
+  prepareProduct()
   occupied.value.forEach(index=>addProduct(index))
   assembly=exploded.value?1:0;assemblyTween=null;strips.forEach(part=>{part.position.y=part.userData.lift*assembly})
   if(renderer)renderer.shadowMap.needsUpdate=true
@@ -219,7 +248,7 @@ function renderFrame(time:number) {
       product.progress=reduced.matches?target:THREE.MathUtils.lerp(product.progress,target,1-Math.exp(-dt*10))
       if(Math.abs(product.progress-target)<.001)product.progress=target
       product.mesh.visible=product.progress>0
-      product.mesh.material.opacity=product.progress*.85
+      product.materials.forEach(material=>{const fading=product.progress<1,transparent=fading||material.userData.baseTransparent,depthWrite=fading?false:material.userData.baseDepthWrite;if(material.transparent!==transparent||material.depthWrite!==depthWrite){material.transparent=transparent;material.depthWrite=depthWrite;material.needsUpdate=true}material.opacity=product.progress*material.userData.baseOpacity})
       product.shadow.visible=product.progress>0
       product.shadow.material.opacity=product.progress*product.progress*.22
       product.mesh.position.y=product.baseY+(1-product.progress)*(props.gridHeight*unit+.6)
@@ -241,6 +270,8 @@ function onReduced(){if(reduced.matches)rotating.value=false;invalidate()}
 // OrbitControls starts on pointerdown, even for a click. Keep the hovered cell
 // until release so highlighting never falls back to a previously selected cell.
 function onControlStart(){tween=null;view.value=null;rotating.value=false;invalidate()}
+watch(gridProductModel,changeProduct)
+watch(gridEnvironment,changeEnvironment)
 watch([active,hasActiveCell],updateHighlight)
 watch(exploded,()=>{assemblyTween={from:assembly,to:exploded.value?1:0,start:performance.now()};hovered.value=null;updateHighlight();setView(view.value??'perspective',620);invalidate()})
 watch(rotating,value=>{if(controls){controls.autoRotate=value;controls.autoRotateSpeed=.8;if(value)view.value=null;invalidate()}})
@@ -265,6 +296,8 @@ onMounted(()=>{
     const canvas=renderer.domElement
     canvas.addEventListener('pointerdown',onDown);canvas.addEventListener('pointermove',onMove);canvas.addEventListener('pointerup',onUp);canvas.addEventListener('pointercancel',onCancel);canvas.addEventListener('pointerleave',onLeave)
     resize();rebuild();ready.value=true
+    if(gridProductModel.value!=='box')void changeProduct()
+    if(gridEnvironment.value!=='studio')void changeEnvironment()
     resizeObserver=new ResizeObserver(resize);resizeObserver.observe(host.value!)
     themeObserver=new MutationObserver(applyTheme);themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['class']})
     intersection=new IntersectionObserver(entries=>{visible=!!entries[0]?.isIntersecting;lastTime=performance.now();invalidate()});intersection.observe(host.value!)
@@ -275,7 +308,7 @@ onMounted(()=>{
 onBeforeUnmount(()=>{
   disposed=true;cancelAnimationFrame(frame);resizeObserver?.disconnect();themeObserver?.disconnect();intersection?.disconnect();document.removeEventListener('visibilitychange',onVisibility);reduced.removeEventListener('change',onReduced)
   if(renderer){const canvas=renderer.domElement;canvas.removeEventListener('pointerdown',onDown);canvas.removeEventListener('pointermove',onMove);canvas.removeEventListener('pointerup',onUp);canvas.removeEventListener('pointercancel',onCancel);canvas.removeEventListener('pointerleave',onLeave)}
-  controls?.dispose();disposeGroup();contactTexture?.dispose();scene?.traverse(object=>{if(object instanceof THREE.DirectionalLight)object.shadow.dispose()});renderer?.dispose();renderer?.domElement.remove()
+  controls?.dispose();disposeGroup();contactTexture?.dispose();skyTexture?.dispose();scene?.traverse(object=>{if(object instanceof THREE.DirectionalLight)object.shadow.dispose()});renderer?.dispose();renderer?.domElement.remove()
 })
 </script>
 <template>
@@ -299,6 +332,9 @@ onBeforeUnmount(()=>{
       </div>
     </div>
     <div class="space-y-3 border-t border-line bg-surface p-3 sm:p-4">
+      <div class="flex flex-wrap items-center gap-2 text-xs" role="group" aria-label="Окружение сцены"><span class="mr-1 text-muted">Окружение</span><button v-for="item in environments" :key="item.id" type="button" class="scene-button" :class="gridEnvironment===item.id?'bg-accent-soft text-accent':'text-muted'" :aria-pressed="gridEnvironment===item.id" @click="gridEnvironment=item.id">{{ item.label }}</button><span v-if="skyLoading" role="status" class="text-muted">Загрузка…</span></div>
+      <p v-if="skyError" role="alert" class="text-xs text-muted">{{ skyError }} <button type="button" class="scene-button text-accent" @click="changeEnvironment">Повторить</button></p>
+      <ProductModelPicker v-model="gridProductModel" :loading="modelLoading" :error="modelError" @retry="changeProduct" />
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="text-xs"><p class="font-medium tabular-nums">Заполнено {{ occupied.size }} из {{ count }} ячеек</p><p class="mt-1 text-muted">Продукт {{ fmt(length) }} × {{ fmt(width) }} × {{ fmt(height) }} мм</p></div>
         <div class="flex gap-2"><button type="button" class="scene-button bg-accent-soft text-accent" :disabled="!ready||!!error||exploded||occupied.size===count" @click="fill">Заполнить всё</button><button type="button" class="scene-button text-muted" :disabled="!occupied.size||!!error" @click="clear">Очистить</button></div>

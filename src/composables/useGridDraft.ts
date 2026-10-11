@@ -1,3 +1,4 @@
+import type { ProductModelId } from '../data/productModels'
 import { computed, reactive, ref, watch } from 'vue'
 import type { ProfileId } from '../domain/types'
 import { calculateGrid, gridRoute, gridSlotWidth } from '../domain/grid'
@@ -5,6 +6,8 @@ import { machines } from '../data/machines'
 import { useBoxDraft } from './useBoxDraft'
 
 export const gridDraft = reactive({ rows: 3, cols: 3, heightMm: 0, profile: 'D' as ProfileId, clearanceMm: 5, productLengthMm: 60, productWidthMm: 60, productHeightMm: 100, cellGapMm: 1, assembly: 'auto' as 'auto' | 'premier' | 'manual' })
+export const gridProductModel = ref<ProductModelId>('box')
+export const gridEnvironment = ref('studio')
 export const gridCutting = ref('roda')
 export const gridConfirmed = ref(false)
 export const gridView = ref<'plan' | 'strips' | 'scene'>('plan')
