@@ -1,24 +1,31 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import RouteLayout from './RouteLayout.vue'
-import { confirmedProduction, productionSelection, savedLayout } from '../composables/useProductionRoute'
+import { confirmedProduction, productionSelection, savedLayout, savedPartLayouts } from '../composables/useProductionRoute'
 import { useBoxDraft } from '../composables/useBoxDraft'
 import { evaluateLayout, layoutVariants } from '../domain/layout'
-import type { SheetPlan } from '../domain/production'
+import type { Geometry, SheetPlan } from '../domain/production'
+const props = defineProps<{ geometry?: Geometry; partKey?: string }>()
 const draft = useBoxDraft()
-const geo = computed(()=>confirmedProduction.value!.geometry!)
+const geo = computed(()=>props.geometry ?? confirmedProduction.value!.geometry!)
+const stored = computed(()=>props.partKey ? savedPartLayouts[props.partKey] ?? null : savedLayout.value)
+const totalArea = computed(()=>geo.value.parts?.every(part=>savedPartLayouts[part.name]) ? geo.value.parts.reduce((sum,part)=>{ const plan=savedPartLayouts[part.name]!; return sum+part.quantity*plan.sheetX*plan.sheetY/plan.count/1e6 },0) : null)
 const variants = computed(()=>layoutVariants(draft,productionSelection,geo.value))
 const custom = ref(false)
 const cols = ref(1), rows = ref(1), x = ref(0), y = ref(0)
 const result = computed(()=>evaluateLayout(draft,productionSelection,geo.value,cols.value,rows.value,x.value,y.value))
 const fmt = (value: number, digits=3)=>value.toLocaleString('ru-RU',{minimumFractionDigits:digits,maximumFractionDigits:digits})
 function choose(plan: SheetPlan) { cols.value=plan.cols; rows.value=plan.rows; x.value=plan.sheetX; y.value=plan.sheetY; custom.value=false }
-watch(variants,()=>{ const plan=savedLayout.value ?? variants.value[0]; if(plan) choose(plan) },{immediate:true})
-const isSaved = computed(()=>!!savedLayout.value && ['sheetX','sheetY','cols','rows'].every(key=>savedLayout.value![key as keyof SheetPlan]===result.value.plan[key as keyof SheetPlan]))
-function save() { if(!result.value.errors.length) savedLayout.value={...result.value.plan} }
+watch(variants,()=>{ const plan=stored.value ?? variants.value[0]; if(plan) choose(plan) },{immediate:true})
+const isSaved = computed(()=>!!stored.value && ['sheetX','sheetY','cols','rows'].every(key=>stored.value![key as keyof SheetPlan]===result.value.plan[key as keyof SheetPlan]))
+function save() { if(result.value.errors.length) return; if(props.partKey) savedPartLayouts[props.partKey]={...result.value.plan}; else savedLayout.value={...result.value.plan} }
 </script>
 <template>
-  <div class="space-y-5 p-4 sm:p-5">
+  <div v-if="geo.parts" class="divide-y divide-line">
+    <div class="p-5"><h2 class="text-base font-semibold">Два отдельных изделия</h2><p class="mt-2 text-xs text-muted">Панели L и W раскладываются на разные листы. На короб нужны по 2 шт. каждой.</p><p class="mt-3 text-sm">Расход на короб: <strong>{{ totalArea===null ? 'сохраните обе раскладки' : fmt(totalArea)+' м²' }}</strong></p></div>
+    <section v-for="part in geo.parts" :key="part.name"><h3 class="px-5 pt-5 text-sm font-semibold">{{ part.name }} · {{ part.quantity }} шт. на короб</h3><SheetLayout :geometry="part.geometry" :part-key="part.name" /></section>
+  </div>
+  <div v-else class="space-y-5 p-4 sm:p-5">
     <div class="flex flex-wrap items-baseline justify-between gap-2"><h2 class="text-base font-semibold">Раскладка на листе</h2><span class="text-xs text-muted">X — поперёк гофры · Y — вдоль</span></div>
     <p class="text-xs text-muted">{{ confirmedProduction!.names.join(' → ') }}</p>
     <div class="flex flex-wrap gap-2">

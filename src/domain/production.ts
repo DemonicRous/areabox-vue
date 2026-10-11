@@ -108,6 +108,7 @@ export function drawingMeasurements(geo: Geometry) {
 export interface ProductionRoute extends Check {
   selection: RouteSelection; line: Passport; names: string[]
   geometry: Geometry | null; sheet: SheetPlan | null
+  partSheets?: { name: string; geometry: Geometry; sheet: SheetPlan | null }[]
 }
 export function finishingLines(input: BoxInput, cutting: string): Passport[] {
   if (technology(cutting) === 'inline') return []
@@ -119,18 +120,20 @@ export function evaluateRoute(input: BoxInput, cutting: string, finishing: strin
   const printing = !input.hasPrinting ? '' : input.printType === 'flexo' ? cutting : input.printType === 'digital' ? 'digital' : 'pinlong'
   const geo = geometry(input, technology(cutting), finishing)
   const sheet = geo ? planSheet(geo, line, printing ? findMachine(printing) : undefined) : null
+  const partSheets = geo?.parts?.map(part=>({name:part.name,geometry:part.geometry,sheet:planSheet(part.geometry,line,printing ? findMachine(printing) : undefined)}))
   const chain = [machines.corrugator![0]!, ...(printing ? [findMachine(printing)!] : []), line, ...(finishing ? [findMachine(finishing)!] : [])]
     .filter((machine, index, all) => all.findIndex(item => item.id === machine.id) === index)
   const checks = chain.map(machine => {
     const category = Object.keys(machines).find(key => machines[key]!.some(item => item.id === machine.id))!
-    const result = checkMachine(machine, input, geo, category, sheet)
+    const checks = partSheets && category!=='stitching' ? partSheets.map(part=>checkMachine(machine,input,part.geometry,category,part.sheet)) : [checkMachine(machine, input, geo, category, sheet)]
+    const result = { blocked:checks.flatMap(check=>check.blocked), review:checks.flatMap(check=>check.review) }
     return { blocked: result.blocked.map(reason => `${machine.name}: ${reason}`), review: result.review.map(reason => `${machine.name}: ${reason}`) }
   })
   const blocked = checks.flatMap(check => check.blocked)
   if (input.hasPrinting && input.printType === 'digital' && technology(cutting) !== 'plotter') blocked.push('После цифровой печати Hanway вырезка доступна только на плоттере')
   if (technology(cutting) !== 'inline' && !finishing) blocked.push('Нет подходящей линии соединения')
   if (finishing && !finishingLines(input, cutting).some(machine => machine.id === finishing)) blocked.push('Способ соединения недоступен для этой конструкции')
-  return { selection: { printing, cutting, finishing }, line, names: chain.map(machine => machine.name), geometry: geo, sheet, blocked: [...new Set(blocked)], review: [...new Set(checks.flatMap(check => check.review))] }
+  return { selection: { printing, cutting, finishing }, line, names: chain.map(machine => machine.name), geometry: geo, sheet:partSheets ? null : sheet, partSheets, blocked: [...new Set(blocked)], review: [...new Set(checks.flatMap(check => check.review))] }
 }
 export function productionRoutes(input: BoxInput): ProductionRoute[] {
   const compound = ['0201-2', '0201-4'].includes(input.design)

@@ -53,6 +53,11 @@ assert(layoutVariants({...overlap,hasPrinting:true},plotter,geometry(overlap,'pl
 const four={...box,design:'0201-4',lengthMm:500,widthMm:300,heightMm:250,creaseLevel:'different'}
 const stitch={printing:'',cutting:'ward',finishing:'godswill-gts-3000'}
 const pair=geometry(four,'rotary',stitch.finishing)
-assert(layoutVariants(four,stitch,pair).length>0)
-for(const plan of layoutVariants(four,stitch,pair)) assert(plan.sheetX>=plan.cols*(pair.parts[0].geometry.width+pair.parts[1].geometry.width)+20)
+const lPlans=layoutVariants(four,stitch,pair.parts[0].geometry)
+const wPlans=layoutVariants(four,stitch,pair.parts[1].geometry)
+assert(lPlans.length>0 && wPlans.length>0)
+for(const plan of lPlans) assert(plan.sheetX>=plan.cols*pair.parts[0].geometry.width+20)
+for(const plan of wPlans) assert(plan.sheetX>=plan.cols*pair.parts[1].geometry.width+20)
+assert(lPlans.some(plan=>plan.sheetX<pair.width+20),'L sheet must not reserve W width')
+assert(wPlans.some(plan=>plan.sheetX<pair.width+20),'W sheet must not reserve L width')
 console.log('Layout variants, margins, complete route limits and manual input checks passed')

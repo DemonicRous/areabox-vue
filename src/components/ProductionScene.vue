@@ -2,7 +2,7 @@
 import { computed, watch } from 'vue'
 import { ArrowRightIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import { useBoxDraft } from '../composables/useBoxDraft'
-import { productionSelection as selection, confirmedProduction, savedLayout } from '../composables/useProductionRoute'
+import { productionSelection as selection, confirmedProduction, savedLayout, savedPartLayouts } from '../composables/useProductionRoute'
 import RouteLayout from './RouteLayout.vue'
 import { findMachine, parameter, evaluateRoute, finishingLines, productionRoutes, technology, type ProductionRoute } from '../domain/production'
 const emit = defineEmits<{ drawing: [] }>()
@@ -54,7 +54,7 @@ function confirm() {
         <span class="min-w-0 flex-1">
           <span class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <span class="text-sm font-semibold">{{ route.line.name }} <span class="ml-1 text-xs font-normal text-muted">{{ labels[technology(route.line.id)] }}</span></span>
-            <span class="text-xs text-muted tabular-nums">{{ route.sheet ? `${route.sheet.count} мест на листе` : 'Геометрия не подтверждена' }}</span>
+            <span class="text-xs text-muted tabular-nums">{{ route.partSheets ? 'Два отдельных изделия' : route.sheet ? `${route.sheet.count} мест на листе` : 'Геометрия не подтверждена' }}</span>
           </span>
           <span class="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted">
             <template v-for="(name, index) in (selection.cutting === route.line.id && current ? current.names : route.names)" :key="name">
@@ -82,7 +82,13 @@ function confirm() {
           </label>
         </div>
       </fieldset>
-      <div v-if="geo && sheet" class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_160px]">
+      <div v-if="current.partSheets" class="space-y-4">
+        <section v-for="part in current.partSheets" :key="part.name">
+          <h4 class="mb-2 text-xs font-medium">{{ part.name }} · отдельный лист</h4>
+          <RouteLayout v-if="savedPartLayouts[part.name] || part.sheet" :geometry="part.geometry" :sheet="(savedPartLayouts[part.name] ?? part.sheet)!" :left="previewLeft" :top="previewTop" :inline="false" />
+        </section>
+      </div>
+      <div v-else-if="geo && sheet" class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_160px]">
         <RouteLayout :geometry="geo" :sheet="sheet" :left="previewLeft" :top="previewTop" :inline="technology(current.line.id) === 'inline'" />
         <dl class="grid grid-cols-2 gap-x-3 gap-y-3 text-xs sm:grid-cols-1">
           <div><dt class="text-muted">Лист, мм</dt><dd class="mt-1 text-sm font-medium tabular-nums">{{ sheet.sheetX }} × {{ sheet.sheetY }}</dd></div>

@@ -1,5 +1,5 @@
 import { machines } from '../data/machines'
-import { checkMachine, findMachine, parameter, technology, type Geometry, type RouteSelection, type SheetPlan } from './production'
+import { checkMachine, findMachine, geometry, parameter, technology, type Geometry, type RouteSelection, type SheetPlan } from './production'
 import type { BoxInput } from './types'
 
 export function layoutLimits(selection: RouteSelection) {
@@ -35,7 +35,8 @@ export function evaluateLayout(input: BoxInput, selection: RouteSelection, geo: 
   if (!errors.length) for (const id of ids) {
     const machine = findMachine(id)!
     const category = Object.keys(machines).find(key=>machines[key]!.some(item=>item.id===id))!
-    const check = checkMachine(machine,input,geo,category,plan)
+    const feedGeometry = input.design==='0201-4' && category==='stitching' ? geometry(input,technology(selection.cutting),selection.finishing) : geo
+    const check = checkMachine(machine,input,feedGeometry,category,plan)
     errors.push(...check.blocked.map(reason=>`${machine.name}: ${reason}`))
     review.push(...check.review.map(reason=>`${machine.name}: ${reason}`))
   }
