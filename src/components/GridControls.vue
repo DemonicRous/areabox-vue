@@ -2,19 +2,18 @@
 import { computed, ref } from 'vue'
 import CatalogSelect from './CatalogSelect.vue'
 import { cardboardProfiles } from '../data/catalog'
-import { gridDraft as grid } from '../composables/useGridDraft'
+import { gridDraft as grid, gridModel as model, gridSlotMm } from '../composables/useGridDraft'
 import { useBoxDraft } from '../composables/useBoxDraft'
 import { calculateGrid } from '../domain/grid'
 const draft=useBoxDraft()
 const needed=ref(12)
 const options=cardboardProfiles.map(p=>({value:p.id,label:p.id,cells:[`${p.actualThicknessMm} мм`,`${p.drawingThicknessMm} мм`]}))
-const model=computed(()=>calculateGrid(draft,grid))
 const suggestions=computed(()=>{
   if(!Number.isInteger(needed.value)||needed.value<2||needed.value>900) return []
   const result=[]
   for(let rows=1;rows<=30;rows++) for(let cols=1;cols<=30;cols++) {
     if(rows*cols!==needed.value) continue
-    const m=calculateGrid(draft,{...grid,rows,cols})
+    const m=calculateGrid(draft,{...grid,rows,cols,slotMm:gridSlotMm.value})
     if(!m.errors.length) result.push({rows,cols,score:Math.abs(Math.log(m.length/m.width))})
   }
   return result.sort((a,b)=>a.score-b.score).slice(0,4)
@@ -43,10 +42,10 @@ const suggestions=computed(()=>{
     <CatalogSelect v-model="grid.profile" label="Профиль решётки" :options="options" :columns="['Фактическая','Чертёжная']" />
     <CatalogSelect v-model="grid.assembly" label="Сборка" :options="[{value:'auto',label:'Автоподбор',description:'Premier PCM или ручная сборка'},{value:'premier',label:'Premier PCM'},{value:'manual',label:'Ручная сборка решётки'}]" />
     <details class="text-xs">
-      <summary class="min-h-11 cursor-pointer py-3 text-muted">Подбор композиции и просечка</summary>
+      <summary class="min-h-11 cursor-pointer py-3 text-muted">Подбор композиции</summary>
       <div class="grid grid-cols-2 gap-3">
         <label class="field">Количество ячеек<input v-model.number="needed" class="control" type="number" min="2" max="900" /></label>
-        <label class="field">Просечка, мм<input v-model.number="grid.slotMm" class="control" type="number" min="1" max="20" step="0.5" /></label>
+        <p class="self-center text-muted">Просечка автоматически: RODA — 7 мм, плоттер и высечка — 6 мм.</p>
       </div>
       <div class="mt-3 flex flex-wrap gap-2"><button v-for="option in suggestions" :key="`${option.cols}-${option.rows}`" type="button" class="min-h-11 cursor-pointer rounded-md bg-canvas px-3" @click="grid.rows=option.rows;grid.cols=option.cols">{{ option.cols }} × {{ option.rows }}</button><p v-if="!suggestions.length" class="text-muted">Подходящих вариантов нет.</p></div>
     </details>

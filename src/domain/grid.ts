@@ -4,6 +4,8 @@ import { layoutLimits } from './layout'
 import { checkMachine, parameter, type Geometry, type SheetPlan } from './production'
 import type { BoxInput, ProfileId } from './types'
 
+export const gridSlotWidth = (cuttingId: string) => cuttingId==='roda' ? 7 : 6
+
 export interface GridSettings { rows: number; cols: number; heightMm: number; profile: ProfileId; clearanceMm: number; productLengthMm: number; productWidthMm: number; productHeightMm: number; cellGapMm: number; slotMm: number; assembly: 'auto' | 'premier' | 'manual' }
 export interface GridStrip { name: string; length: number; height: number; quantity: number; slots: number[]; fromTop: boolean; points: number[][] }
 export interface GridModel { errors: string[]; width: number; length: number; height: number; cellL: number; cellW: number; thickness: number; depth: number; strips: GridStrip[]; pieceArea: number }
@@ -40,6 +42,8 @@ export interface GridItem { x: number; y: number; width: number; height: number;
 export interface GridSheet { sheetX: number; sheetY: number; kits: number; area: number; items: GridItem[]; left: number; top: number }
 export interface GridRouteResult { line:Passport; blocked:string[]; review:string[]; sheet:GridSheet|null; area:number|null; assembly:'premier'|'manual' }
 export function gridRoute(box: BoxInput, settings: GridSettings, model: GridModel, line: Passport):GridRouteResult {
+  settings={...settings,slotMm:gridSlotWidth(line.id)}
+  model=calculateGrid(box,settings)
   if(settings.assembly==='auto') {
     const premier=gridRoute(box,{...settings,assembly:'premier'},model,line)
     const assemblyErrors=premier.blocked.filter(reason=>reason.startsWith('Premier PCM:'))

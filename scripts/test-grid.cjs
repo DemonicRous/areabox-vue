@@ -36,7 +36,7 @@ assert(calculateGrid(box,{...settings,heightMm:4}).errors.length)
 assert(calculateGrid(box,{...settings,clearanceMm:NaN}).errors.length)
 assert.equal(calculateGrid(box,{...settings,productLengthMm:200}).length,608,'Product dimensions must drive the grid')
 assert(calculateGrid(box,{...settings,profile:'BC',slotMm:6}).errors.length)
-assert(gridRoute(box,{...settings,slotMm:6},calculateGrid(box,{...settings,slotMm:6}),machines.gridCutting[0]).blocked.some(reason=>reason.includes('7 мм')))
+assert.equal(gridRoute(box,{...settings,slotMm:6},calculateGrid(box,{...settings,slotMm:6}),machines.gridCutting[0]).blocked.length,0,'RODA route must automatically use 7 mm')
 const tall=calculateGrid({...box,heightMm:405},{...settings,productHeightMm:405,assembly:'manual'})
 assert(gridRoute({...box,heightMm:405},{...settings,productHeightMm:405,assembly:'manual'},tall,machines.gridCutting[0]).blocked.some(reason=>reason.includes('45–200')))
 const many={...settings,rows:8}
@@ -69,7 +69,7 @@ assert.equal(autoManual.blocked.length,0,'Manual assembly must remove Premier li
 assert(autoManual.review.some(reason=>reason.includes('Ручная сборка решётки')))
 assert.equal(gridRoute(box,{...settings,assembly:'auto'},model,machines.gridCutting[0]).assembly,'premier')
 const tooLong={...box,lengthMm:1500,widthMm:600}
-assert(gridRoute(tooLong,autoSettings,calculateGrid(tooLong,{...autoSettings,productLengthMm:600}),machines.gridCutting[0]).blocked.some(reason=>reason.includes('1300')))
+assert(gridRoute(tooLong,{...autoSettings,productLengthMm:600},calculateGrid(tooLong,{...autoSettings,productLengthMm:600}),machines.gridCutting[0]).blocked.some(reason=>reason.includes('1300')))
 
 for(let i=0;i<plotter.sheet.items.length;i++) for(let j=i+1;j<plotter.sheet.items.length;j++) {
   const a=plotter.sheet.items[i],b=plotter.sheet.items[j]
@@ -111,3 +111,20 @@ state.gridDraft.productHeightMm=220
 assert.equal(state.useBoxDraft().heightMm,225)
 assert.equal(state.gridModel.value.height,200,'Explicit height must stay independent of product height')
 console.log('Product-driven composition, automatic height and fitted box dimensions passed')
+
+state.gridCutting.value='roda'
+assert.equal(state.gridSlotMm.value,7)
+const slotWidth=()=>state.gridModel.value.strips[0].points[4][0]-state.gridModel.value.strips[0].points[5][0]
+assert.equal(slotWidth(),7)
+state.gridConfirmed.value=true
+state.gridCutting.value='kongsberg'
+assert.equal(state.gridSlotMm.value,6)
+assert.equal(slotWidth(),6,'Plotter drawing must use 6 mm slots')
+assert.equal(state.gridConfirmed.value,false)
+state.gridCutting.value=machines.flatbed[0].id
+assert.equal(slotWidth(),6,'Flatbed drawing must use 6 mm slots')
+const thick={...settings,profile:'BC',assembly:'manual'}
+assert.equal(gridRoute(box,thick,calculateGrid(box,thick),machines.gridCutting[0]).blocked.length,0)
+assert(gridRoute(box,thick,calculateGrid(box,thick),machines.plotter[0]).blocked.some(reason=>reason.includes('толщины')),'Each route must validate its own slot width')
+console.log('Equipment-specific slot widths, drawings and eligibility passed')
+
