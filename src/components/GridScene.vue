@@ -12,7 +12,9 @@ const host=ref<HTMLDivElement|null>(null),error=ref(''),ready=ref(false)
 const occupied=ref(new Set<number>()),selected=ref(0),hovered=ref<number|null>(null)
 const expanded=ref(false),exploded=ref(false),rotating=ref(false),view=ref<View|null>('perspective')
 const count=computed(()=>props.rows*props.cols)
+const keyboardSelection=ref(false)
 const active=computed(()=>hovered.value??selected.value)
+const hasActiveCell=computed(()=>hovered.value!==null||keyboardSelection.value)
 const cellDescription=computed(()=>`Ряд ${Math.floor(active.value/props.cols)+1} · колонка ${active.value%props.cols+1}`)
 const views: {id:View;label:string}[]=[{id:'perspective',label:'Перспектива'},{id:'top',label:'Сверху'},{id:'front',label:'Спереди'},{id:'side',label:'Сбоку'}]
 const fmt=(n:number)=>n.toLocaleString('ru-RU',{maximumFractionDigits:2})
@@ -102,7 +104,7 @@ function updateHighlight() {
   if(!highlight)return
   const index=active.value,row=Math.floor(index/props.cols),col=index%props.cols
   highlight.position.set((-totalX/2+col*(props.cellL+props.board)+props.cellL/2)*unit,.015,(-totalZ/2+row*(props.cellW+props.board)+props.cellW/2)*unit)
-  highlight.visible=!exploded.value;invalidate()
+  highlight.visible=!exploded.value&&hasActiveCell.value;invalidate()
 }
 function hit(event:PointerEvent):number|null {
   if(!renderer||!camera||exploded.value)return null
@@ -117,10 +119,12 @@ function onDown(event:PointerEvent) {
   if(pointers.size>1){pointerStart=null;return}
   if(event.button!==0)return
   pointerStart={x:event.clientX,y:event.clientY,id:event.pointerId}
+  keyboardSelection.value=false
   hovered.value=hit(event)
 }
 function onMove(event:PointerEvent) {
   if(pointers.size||event.pointerType==='touch')return
+  keyboardSelection.value=false
   hovered.value=hit(event)
   if(renderer)renderer.domElement.style.cursor=hovered.value!==null?'pointer':'grab'
 }
@@ -132,7 +136,7 @@ function onUp(event:PointerEvent) {
   if(index!==null){hovered.value=index;toggle(index)}
 }
 function onCancel(event:PointerEvent){pointers.delete(event.pointerId);pointerStart=null}
-function onLeave(){hovered.value=null}
+function onLeave(){hovered.value=null;keyboardSelection.value=false}
 function onKey(event:KeyboardEvent) {
   if(event.target!==host.value||exploded.value)return
   let next=selected.value
@@ -140,9 +144,9 @@ function onKey(event:KeyboardEvent) {
   else if(event.key==='ArrowRight')next++
   else if(event.key==='ArrowUp')next-=props.cols
   else if(event.key==='ArrowDown')next+=props.cols
-  else if(event.key==='Enter'||event.key===' '){event.preventDefault();toggle(next);return}
+  else if(event.key==='Enter'||event.key===' '){event.preventDefault();keyboardSelection.value=true;toggle(next);return}
   else return
-  event.preventDefault();hovered.value=null;selected.value=THREE.MathUtils.clamp(next,0,count.value-1)
+  event.preventDefault();keyboardSelection.value=true;hovered.value=null;selected.value=THREE.MathUtils.clamp(next,0,count.value-1)
 }
 function rebuild() {
   if(!scene||!controls||!camera)return
@@ -174,7 +178,7 @@ function rebuild() {
     target.position.set((-totalX/2+col*(props.cellL+props.board)+props.cellL/2)*unit,Math.max(props.height,props.gridHeight)*unit/2,(-totalZ/2+row*(props.cellW+props.board)+props.cellW/2)*unit)
     target.userData.index=i;target.updateMatrixWorld(true);targets.push(target)
   }
-  occupied.value=new Set([...occupied.value].filter(index=>index<count.value));selected.value=Math.min(selected.value,count.value-1);hovered.value=null
+  occupied.value=new Set([...occupied.value].filter(index=>index<count.value));selected.value=Math.min(selected.value,count.value-1);hovered.value=null;keyboardSelection.value=false
   productGeometry=new THREE.BoxGeometry(props.length*unit,props.height*unit,props.width*unit)
   occupied.value.forEach(index=>addProduct(index))
   assembly=exploded.value?1:0;assemblyTween=null;strips.forEach(part=>{part.position.y=part.userData.lift*assembly})
@@ -230,7 +234,7 @@ function onReduced(){if(reduced.matches)rotating.value=false;invalidate()}
 // OrbitControls starts on pointerdown, even for a click. Keep the hovered cell
 // until release so highlighting never falls back to a previously selected cell.
 function onControlStart(){tween=null;view.value=null;rotating.value=false;invalidate()}
-watch(active,updateHighlight)
+watch([active,hasActiveCell],updateHighlight)
 watch(exploded,()=>{assemblyTween={from:assembly,to:exploded.value?1:0,start:performance.now()};hovered.value=null;updateHighlight();setView(view.value??'perspective',620);invalidate()})
 watch(rotating,value=>{if(controls){controls.autoRotate=value;controls.autoRotateSpeed=.8;if(value)view.value=null;invalidate()}})
 watch(()=>[props.length,props.width,props.height,props.gridHeight,props.rows,props.cols,props.cellL,props.cellW,props.board,props.edgeTrim,props.strips],rebuild)
@@ -279,9 +283,9 @@ onBeforeUnmount(()=>{
       </div>
     </div>
     <div class="relative" :class="expanded?'h-[650px]':'h-[420px] sm:h-[480px]'">
-      <div ref="host" tabindex="0" class="h-full w-full outline-offset-[-3px] focus-visible:outline-2 focus-visible:outline-accent" aria-label="3D: стрелки выбирают ячейку, Enter добавляет продукт" aria-describedby="grid-scene-help" @keydown="onKey" />
+      <div ref="host" tabindex="0" class="h-full w-full outline-offset-[-3px] focus-visible:outline-2 focus-visible:outline-accent" aria-label="3D: стрелки выбирают ячейку, Enter добавляет продукт" aria-describedby="grid-scene-help" @keydown="onKey" @blur="keyboardSelection=false" />
       <p v-if="error" role="status" class="absolute inset-0 grid place-items-center bg-canvas p-6 text-center text-sm text-muted">{{ error }}</p>
-      <div v-else class="pointer-events-none absolute left-3 top-3 rounded-md bg-surface px-3 py-2 text-xs text-muted"><span class="font-medium text-ink">{{ exploded?'Решётка разобрана':cellDescription }}</span><span v-if="!exploded" class="ml-2">{{ occupied.has(active)?'С продуктом':'Пустая' }}</span></div>
+      <div v-else class="pointer-events-none absolute left-3 top-3 rounded-md bg-surface px-3 py-2 text-xs text-muted"><span class="font-medium text-ink">{{ exploded?'Решётка разобрана':hasActiveCell?cellDescription:'Наведите на ячейку' }}</span><span v-if="!exploded&&hasActiveCell" class="ml-2">{{ occupied.has(active)?'С продуктом':'Пустая' }}</span></div>
       <div v-if="!error" class="absolute right-3 bottom-3 flex gap-1 rounded-md bg-surface p-1">
         <button type="button" class="scene-button" :disabled="!ready" :aria-pressed="exploded" @click="exploded=!exploded">{{ exploded?'Собрать решётку':'Разобрать решётку' }}</button>
         <button type="button" class="scene-button scene-icon" :title="rotating?'Остановить вращение':'Вращать сцену'" :aria-label="rotating?'Остановить вращение':'Вращать сцену'" :aria-pressed="rotating" :disabled="!ready" @click="rotating=!rotating"><PauseIcon v-if="rotating" /><PlayIcon v-else /></button>
