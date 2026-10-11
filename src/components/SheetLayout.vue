@@ -44,11 +44,11 @@ function save() { if(result.value.errors.length) return; if(props.partKey) saved
     <ul v-if="result.errors.length" class="space-y-1 text-xs text-danger" role="alert"><li v-for="error in result.errors" :key="error">{{ error }}</li></ul>
     <template v-else>
       <RouteLayout :geometry="geo" :sheet="result.plan" :left="result.limits.left" :top="result.limits.top" :inline="result.limits.tech==='inline'" />
-      <dl class="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4 tabular-nums">
+      <dl class="layout-metrics grid grid-cols-2 gap-x-5 gap-y-4 text-xs tabular-nums">
         <div><dt class="text-muted">Заготовок на листе</dt><dd class="mt-1 text-sm font-semibold">{{ result.plan.count * (geo.parts ? 2 : 1) }}</dd></div>
         <div><dt class="text-muted">Площадь листа</dt><dd class="mt-1 text-sm font-medium">{{ fmt(x*y/1e6) }} м²</dd></div>
-        <div><dt class="text-muted">{{ geo.count===2 ? 'Площадь одной половины · 1 шт.' : props.partKey ? 'Площадь панели · 1 шт.' : 'Расход на заготовку' }}</dt><dd class="mt-1 text-sm font-medium">{{ fmt(x*y/result.plan.count/1e6,3) }} м²</dd></div>
-        <div v-if="geo.count===2"><dt class="text-muted">Площадь комплекта короба · 2 шт.</dt><dd class="mt-1 text-sm font-semibold">{{ fmt(x*y/result.plan.count/1e6*2) }} м²</dd></div>
+        <div><dt class="text-muted">{{ geo.count===2 ? 'Одна половина' : props.partKey ? 'Панель' : 'Расход на заготовку' }}<span v-if="geo.count===2 || props.partKey" class="whitespace-nowrap"> · 1 шт.</span></dt><dd class="mt-1 text-sm font-medium">{{ fmt(x*y/result.plan.count/1e6,3) }} м²</dd></div>
+        <div v-if="geo.count===2"><dt class="text-muted">Комплект короба<span class="whitespace-nowrap"> · 2 шт.</span></dt><dd class="mt-1 text-sm font-semibold">{{ fmt(x*y/result.plan.count/1e6*2) }} м²</dd></div>
         <div><dt class="text-muted">Использование формата</dt><dd class="mt-1 text-sm font-medium">{{ fmt(result.plan.utilization*100,1) }}%</dd></div>
       </dl>
       <p v-if="geo.count>1" class="text-xs text-muted">На короб: {{ geo.parts ? '2 панели L + 2 панели W' : 'две одинаковые половины' }}. {{ geo.parts ? 'Сетка размещает пары L + W. Расход на короб равен расходу на пару × 2.' : 'Площадь комплекта равна площади одной половины × 2.' }}</p>
@@ -72,3 +72,12 @@ function save() { if(result.value.errors.length) return; if(props.partKey) saved
     </div>
   </div>
 </template>
+
+<style scoped>
+.layout-metrics > div { min-width: 0; }
+.layout-metrics dt { min-height: 2.5em; line-height: 1.25; text-wrap: balance; }
+.layout-metrics dd { white-space: nowrap; }
+@media (min-width: 640px) {
+  .layout-metrics { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+}
+</style>
