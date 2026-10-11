@@ -1,19 +1,23 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BoxDraftForm from '../components/BoxDraftForm.vue'
 import AppIcon from '../components/AppIcon.vue'
+import ProductionScene from '../components/ProductionScene.vue'
+import GeometryDrawing from '../components/GeometryDrawing.vue'
+import { confirmedProduction } from '../composables/useProductionRoute'
 import { useBoxDraft } from '../composables/useBoxDraft'
 const route = useRoute()
 const router = useRouter()
 const draft = useBoxDraft()
+watch(draft,()=>{ confirmedProduction.value=null },{deep:true})
 const views = [
   { id: 'drawing', title: 'Чертёж', icon: 'drawing', empty: 'Расчётный чертёж ещё не подключён' },
   { id: 'layout', title: 'Раскладка', icon: 'layout', empty: 'Расчёт раскладки ещё не подключён' },
   { id: 'route', title: 'Маршрут', icon: 'route', empty: 'Подбор оборудования ещё не подключён' },
 ] as const
-const selected = computed(() => views.find(view => view.id === route.query.view) ?? views[0])
-function changeView(id: string) { router.replace({ path: '/', query: { ...route.query, view: id === 'drawing' ? undefined : id } }) }
+const selected = computed(() => views.find(view => view.id === route.query.view) ?? views[2])
+function changeView(id: string) { router.replace({ path: '/', query: { ...route.query, view: id } }) }
 </script>
 <template>
   <div class="mb-5 flex items-center justify-between gap-4"><h1 class="text-lg font-semibold">Короб</h1><span class="text-xs text-muted">FEFCO {{ Number(draft.design.split('-')[0]) }} · {{ draft.profile }}</span></div>
@@ -26,9 +30,11 @@ function changeView(id: string) { router.replace({ path: '/', query: { ...route.
         </nav>
         <span class="ml-auto hidden text-xs text-muted sm:block">мм</span>
       </div>
-      <div :key="selected.id" class="flex min-h-72 flex-col items-center justify-center gap-3 px-5 py-14 text-center sm:min-h-[420px] lg:min-h-[540px]" role="status"><AppIcon :name="selected.icon" class="size-8 text-muted" /><p class="text-sm text-muted">{{ selected.empty }}</p></div>
+      <ProductionScene v-if="selected.id==='route'" @drawing="changeView('drawing')" />
+      <GeometryDrawing v-else-if="selected.id==='drawing' && confirmedProduction?.geometry" :geometry="confirmedProduction.geometry" :names="confirmedProduction.names" :review="confirmedProduction.review" />
+      <div v-else :key="selected.id" class="flex min-h-72 flex-col items-center justify-center gap-3 px-5 py-14 text-center sm:min-h-[420px] lg:min-h-[540px]" role="status"><AppIcon :name="selected.icon" class="size-8 text-muted" /><p class="text-sm text-muted">{{ selected.id==='drawing' ? 'Выберите производственную цепочку во вкладке «Маршрут»' : selected.empty }}</p><button v-if="selected.id==='drawing'" type="button" class="min-h-11 cursor-pointer rounded-md bg-accent-soft px-4 py-2 text-accent" @click="changeView('route')">Выбрать маршрут</button></div>
       <div class="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line px-4 py-3 text-xs text-muted tabular-nums"><span>L {{ draft.lengthMm || '—' }} × W {{ draft.widthMm || '—' }} × H {{ draft.heightMm || '—' }} мм</span><span class="ml-auto">Площадь: — м²</span></div>
     </section>
   </div>
-  <details class="mt-4 rounded-lg border border-line bg-surface px-4 py-3 lg:ml-[336px]" :open="route.query.details === '1'"><summary class="w-fit cursor-pointer text-xs text-muted">Диагностика</summary><p class="pt-3 text-xs leading-relaxed text-muted">Расчётное ядро не подключено.</p></details>
+  <details class="mt-4 rounded-lg border border-line bg-surface px-4 py-3 lg:ml-[336px]" :open="route.query.details === '1'"><summary class="w-fit cursor-pointer text-xs text-muted">Диагностика</summary><p class="pt-3 text-xs leading-relaxed text-muted">{{ confirmedProduction ? (confirmedProduction.review.join(' · ') || 'Известные ограничения выбранного маршрута проверены.') : 'Выберите маршрут. Незаданные ограничения оборудования требуют проверки.' }}</p></details>
 </template>

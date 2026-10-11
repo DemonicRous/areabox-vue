@@ -1,0 +1,23 @@
+const { buildSync } = require('esbuild')
+const { strict: assert } = require('node:assert')
+const vm = require('node:vm')
+const output = buildSync({ entryPoints: ['src/domain/production.ts'], bundle: true, platform: 'node', format: 'cjs', write: false })
+const context = { module: { exports: {} }, exports: {} }
+vm.runInNewContext(output.outputFiles[0].text, context)
+const { geometry, checkMachine, findMachine } = context.module.exports
+const box = { design: '0201', profile: 'B', lengthMm: 300, widthMm: 200, heightMm: 150, hasPrinting: false, creaseLevel: 'same', printType: 'digital', printColors: 1 }
+const inline = geometry(box, 'inline', '')
+assert.equal(inline.slot, 8)
+assert.equal(inline.width, 1043)
+assert.equal(inline.height, 355)
+assert.equal(geometry({ ...box, profile: 'BC' }, 'inline', '').slot, 10)
+assert.equal(geometry(box, 'flatbed', '').slot, 6)
+assert.equal(geometry(box, 'rotary', '').slot, 6)
+assert.equal(geometry(box, 'plotter', 'godswill-gts-3000').flap, 45)
+assert.equal(geometry({ ...box, design: '0203' }, 'flatbed', ''), null)
+assert.equal(geometry({ ...box, widthMm: 400 }, 'inline', ''), null)
+assert(checkMachine(findMachine('tcy-5pa'), { ...box, profile: 'F' }, inline, 'inline').blocked.some(reason => reason.includes('Профиль')))
+assert(checkMachine(findMachine('tcy-5pa'), { ...box, creaseLevel: 'different' }, inline, 'inline').blocked.some(reason => reason.includes('Биговки')))
+assert(checkMachine(findMachine('tcy-5pa'), { ...box, hasPrinting: true, printType: 'flexo', printColors: 3 }, inline, 'inline').blocked.some(reason => reason.includes('Печать')))
+assert(checkMachine(findMachine('signature-elite-135'), box, geometry(box, 'flatbed', ''), 'folderGluer').review.length > 0)
+console.log('Production geometry and equipment checks passed')
