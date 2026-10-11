@@ -30,6 +30,10 @@ const detailYRight = computed(() => detailRight.value >= detailLeft.value ? 130 
     <div class="overflow-x-auto bg-canvas" :tabindex="zoom ? 0 : undefined" aria-label="Размерный чертёж">
       <svg class="w-full text-ink" :class="zoom ? 'min-w-[1100px]' : ''" :viewBox="`${-pad*.45} ${-pad} ${geometry.width+pad*2} ${geometry.height+pad*2}`" role="img" aria-label="Развёртка: размеры панелей сверху, общая длина снизу, общая высота справа. Все размеры в миллиметрах.">
         <polygon :points="geometry.points.map(point=>point.join(',')).join(' ')" fill="var(--surface)" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke" />
+        <g v-for="(segment,index) in panels" :key="`panel-${index}`">
+          <circle :cx="(segment.start+segment.end)/2" :cy="geometry.height/2" :r="font*.8" fill="var(--accent-soft)" />
+          <text :x="(segment.start+segment.end)/2" :y="geometry.height/2+font*.34" :font-size="font" text-anchor="middle" fill="var(--accent)">{{ index+1 }}</text>
+        </g>
         <line v-for="(fold,index) in geometry.folds" :key="index" :x1="fold[0]" :y1="fold[1]" :x2="fold[2]" :y2="fold[3]" stroke="var(--accent)" stroke-width="1.2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" />
         <g v-for="(segment,index) in panels" :key="index">
           <path :d="`M${segment.start} ${-pad*.08} V${-pad*.58} M${segment.end} ${-pad*.08} V${-pad*.58} M${segment.start} ${-pad*.4} H${segment.end}`" fill="none" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
@@ -52,8 +56,14 @@ const detailYRight = computed(() => detailRight.value >= detailLeft.value ? 130 
         <h3 class="mb-3 text-sm font-semibold">Размеры между биговками</h3>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs tabular-nums">
-            <thead class="text-muted"><tr class="border-b border-line"><th class="py-2 font-normal">Панель</th><th class="px-2 py-2 text-right font-normal">Ширина</th><th class="px-2 py-2 text-right font-normal">Верхний клапан</th><th class="px-2 py-2 text-right font-normal">Корпус</th><th class="py-2 pl-2 text-right font-normal">Нижний клапан</th></tr></thead>
-            <tbody><tr v-for="(panel,index) in measurements.panels" :key="index" class="border-b border-line"><th class="py-3 font-medium">{{ index+1 }}</th><td class="px-2 py-3 text-right">{{ fmt(panel.width) }}</td><td class="px-2 py-3 text-right">{{ fmt(panel.top) }}</td><td class="px-2 py-3 text-right">{{ fmt(panel.body) }}</td><td class="py-3 pl-2 text-right">{{ fmt(panel.bottom) }}</td></tr></tbody>
+            <caption class="mb-3 text-left text-[11px] text-muted">Панели слева направо, как на чертеже · мм</caption>
+            <thead><tr class="border-b border-line bg-canvas"><th scope="col" class="px-3 py-3 font-normal text-muted">Размер</th><th v-for="(_,index) in measurements.panels" :key="index" scope="col" class="px-3 py-3 text-center font-medium"><span class="mx-auto flex size-6 items-center justify-center rounded-full bg-accent-soft text-accent">{{ index+1 }}</span></th></tr></thead>
+            <tbody>
+              <tr class="border-b border-line"><th scope="row" class="px-3 py-3 font-normal text-muted">Ширина панели</th><td v-for="(panel,index) in measurements.panels" :key="index" class="px-3 py-3 text-center font-medium">{{ fmt(panel.width) }}</td></tr>
+              <tr class="border-b border-line"><th scope="row" class="px-3 py-3 font-normal text-muted">Верхний клапан</th><td v-for="(panel,index) in measurements.panels" :key="index" class="px-3 py-3 text-center">{{ fmt(panel.top) }}</td></tr>
+              <tr class="border-b border-line bg-canvas"><th scope="row" class="px-3 py-3 font-medium">Высота корпуса</th><td v-for="(panel,index) in measurements.panels" :key="index" class="px-3 py-3 text-center font-semibold">{{ fmt(panel.body) }}</td></tr>
+              <tr class="border-b border-line"><th scope="row" class="px-3 py-3 font-normal text-muted">Нижний клапан</th><td v-for="(panel,index) in measurements.panels" :key="index" class="px-3 py-3 text-center">{{ fmt(panel.bottom) }}</td></tr>
+            </tbody>
           </table>
         </div>
         <p class="mt-3 text-xs text-muted">Соединительный клапан <strong class="font-medium text-ink">{{ geometry.flap }} мм</strong><span v-if="geometry.count>1"> · {{ geometry.count }} заготовки</span></p>
