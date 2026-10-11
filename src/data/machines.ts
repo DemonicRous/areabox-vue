@@ -1,6 +1,7 @@
 import { asahiTemplate, eternaTemplate, createInlineTemplate, createFolderGluingTemplate, createPrintingTemplate, createStitchingTemplate, fosberTemplate, gerunTemplate, kongsbergTemplate, wardTemplate, type EquipmentParameterGroup } from './equipment'
 export interface Passport { id: string; name: string; groups: EquipmentParameterGroup[] }
 export const machines: Record<string, Passport[]> = {
+  manualGluer: [{ id: 'manual-gluing', name: 'Ручная склейка', groups: [] }],
   folderGluer: [
     { id: 'signature-elite-135', name: 'SIGNATURE ELITE-135', groups: createFolderGluingTemplate('SIGNATURE ELITE-135') },
     { id: 'rolam-1100', name: 'ROLAM-1100', groups: createFolderGluingTemplate('ROLAM-1100') },

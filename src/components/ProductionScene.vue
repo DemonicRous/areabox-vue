@@ -17,7 +17,7 @@ const printing = computed(()=> !draft.hasPrinting ? [] : draft.printType === 'fl
 const cutting = computed(()=>draft.hasPrinting && draft.printType === 'flexo' ? printing.value.filter(machine=>machine.id===selection.printing)
   : draft.hasPrinting && draft.printType === 'digital' ? machines.plotter!
   : [...(draft.hasPrinting || compound.value ? [] : machines.inline!), ...machines.flatbed!, ...machines.rotary!, ...machines.plotter!])
-const finishing = computed(()=> cutTech.value === 'inline' ? [] : compound.value ? machines.stitching! : [...machines.folderGluer!, ...machines.stitching!])
+const finishing = computed(()=> cutTech.value === 'inline' ? [] : compound.value ? machines.stitching! : [...machines.folderGluer!, ...machines.stitching!, ...(cutTech.value==='plotter' ? machines.manualGluer! : [])])
 function category(machine: Passport) { return Object.keys(machines).find(key=>machines[key]!.some(item=>item.id===machine.id))! }
 function check(machine: Passport, stage: string) {
   const candidateGeometry = stage === 'cutting' ? geometry(draft,technology(machine.id),selection.finishing)

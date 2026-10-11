@@ -117,6 +117,10 @@ export function checkMachine(machine: Passport, input: BoxInput, geo: Geometry |
   if (input.hasPrinting && (!Number.isInteger(input.printColors) || input.printColors < 1)) {
     result.blocked.push('Укажите положительное целое количество цветов'); return result
   }
+  if (category === 'manualGluer') {
+    if (!geo) result.review.push('Геометрия требует проверки')
+    return result
+  }
   const supported = parameter(machine, 'profiles')
   if (!supported) result.review.push('Профили не заданы')
   else if (!supported.split(' · ').some(value => value.split(' ')[0] === input.profile)) result.blocked.push(`Профиль ${input.profile} недоступен`)
