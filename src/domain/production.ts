@@ -8,6 +8,7 @@ export interface Geometry {
   width: number; height: number; slot: number; flap: number; body: number
   panels: number[]; points: number[][]; folds: number[][]; count: number
   panelEdges?: number[][]
+  parts?: { name: string; quantity: number; geometry: Geometry; x: number }[]
 }
 export function parameter(machine: Passport, id: string) {
   return machine.groups.flatMap(group => group.parameters).find(item => item.id === id)?.value
@@ -16,11 +17,16 @@ export function findMachine(id: string) { return Object.values(machines).flat().
 export function technology(id: string): Technology {
   return (['inline', 'flatbed', 'rotary', 'plotter'] as const).find(category => machines[category]?.some(machine => machine.id === id)) ?? 'plotter'
 }
-export function geometry(input: BoxInput, tech: Technology, finishing: string): Geometry | null {
-  if (input.design === '0201-4' || ![input.lengthMm, input.widthMm, input.heightMm].every(value => Number.isFinite(value) && value > 0) || input.widthMm > input.lengthMm) return null
+export function geometry(input: BoxInput, tech: Technology, finishing: string, part?: 'L' | 'W'): Geometry | null {
+  if (![input.lengthMm, input.widthMm, input.heightMm].every(value => Number.isFinite(value) && value > 0) || input.widthMm > input.lengthMm) return null
+  if (input.design === '0201-4' && !part) {
+    const l=geometry(input,tech,finishing,'L')!, w=geometry(input,tech,finishing,'W')!
+    return { ...l, width:l.width+w.width, height:Math.max(l.height,w.height), count:4,
+      parts:[{name:'Панель L',quantity:2,geometry:l,x:0},{name:'Панель W',quantity:2,geometry:w,x:l.width}] }
+  }
   const material = cardboardProfiles.find(profile => profile.id === input.profile)!
   const t = material.drawingThicknessMm, half = Math.floor(t / 2)
-  const compound = input.design === '0201-2'
+  const compound = input.design === '0201-2' || input.design === '0201-4'
   const stitch = finishing.startsWith('godswill') || finishing.startsWith('gofrotime')
   const slot = tech === 'inline' ? (['BF', 'BE', 'BD', 'BC'].includes(input.profile) ? 10 : 8) : 6
   let panels = [input.widthMm + half, input.lengthMm + t, input.widthMm + t, input.lengthMm + half]
@@ -29,6 +35,7 @@ export function geometry(input: BoxInput, tech: Technology, finishing: string): 
     firstIsLength = finishing.startsWith('gofrotime')
     panels = firstIsLength ? [input.lengthMm + half, input.widthMm + t] : [input.widthMm + t, input.lengthMm + half]
   }
+  if (part) { panels=[(part==='L' ? input.lengthMm : input.widthMm)+t]; firstIsLength=part==='L' }
   const panelWidth = panels.reduce((sum, panel) => sum + panel, 0)
   const fiveLayer = ['BF', 'BE', 'BD', 'BC'].includes(input.profile)
   const flap = compound || stitch ? 45 : tech === 'inline' ? (panelWidth > 1600 ? 40 : 35)
@@ -199,6 +206,7 @@ export function checkMachine(machine: Passport, input: BoxInput, geo: Geometry |
     if (!['0200', '0201'].includes(input.design)) result.blocked.push('Конструкция недоступна на инлайне')
   }
   if (category === 'stitching' && !['0201-2', '0201-4'].includes(input.design)) result.blocked.push('Сшивка доступна только для коробок из половинок')
+  if (category === 'stitching' && input.design === '0201-4') result.review.push('Подача на сшивку проверена по паре L + W; последовательность сборки четырёх панелей требует подтверждения')
   if (!geo) { result.review.push('Геометрия требует проверки'); return result }
   const minBlankHeight = parameter(machine,'minBlankHeight')
   if (minBlankHeight && geo.height < Number(minBlankHeight)) {

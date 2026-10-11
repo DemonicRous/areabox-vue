@@ -38,11 +38,12 @@ function save() { if(!result.value.errors.length) savedLayout.value={...result.v
     <template v-else>
       <RouteLayout :geometry="geo" :sheet="result.plan" :left="result.limits.left" :top="result.limits.top" :inline="result.limits.tech==='inline'" />
       <dl class="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4 tabular-nums">
-        <div><dt class="text-muted">Заготовок на листе</dt><dd class="mt-1 text-sm font-semibold">{{ result.plan.count }}</dd></div>
+        <div><dt class="text-muted">Заготовок на листе</dt><dd class="mt-1 text-sm font-semibold">{{ result.plan.count * (geo.parts ? 2 : 1) }}</dd></div>
         <div><dt class="text-muted">Площадь листа</dt><dd class="mt-1 text-sm font-medium">{{ fmt(x*y/1e6) }} м²</dd></div>
-        <div><dt class="text-muted">Расход на заготовку</dt><dd class="mt-1 text-sm font-medium">{{ fmt(x*y/result.plan.count/1e6,3) }} м²</dd></div>
+        <div><dt class="text-muted">{{ geo.parts ? 'Расход на пару L + W' : 'Расход на заготовку' }}</dt><dd class="mt-1 text-sm font-medium">{{ fmt(x*y/result.plan.count/1e6,3) }} м²</dd></div>
         <div><dt class="text-muted">Использование формата</dt><dd class="mt-1 text-sm font-medium">{{ fmt(result.plan.utilization*100,1) }}%</dd></div>
       </dl>
+      <p v-if="geo.count>1" class="text-xs text-muted">На короб: {{ geo.parts ? '2 панели L + 2 панели W' : 'две одинаковые половины' }}. {{ geo.parts ? 'Сетка размещает пары L + W. Расход на короб равен расходу на пару × 2.' : 'Расход на короб равен расходу на заготовку × 2.' }}</p>
       <p class="text-[11px] text-muted">Использование рассчитано по прямоугольным габаритам развёртки. Поля слева / справа / сверху / снизу: {{ result.limits.left }} / {{ result.limits.right }} / {{ result.limits.top }} / {{ result.limits.bottom }} мм.</p>
     </template>
     <section v-if="!custom" class="border-t border-line pt-4">
@@ -50,8 +51,8 @@ function save() { if(!result.value.errors.length) savedLayout.value={...result.v
       <p v-if="!variants.length" class="text-xs text-muted">Допустимых автоматических раскладок нет. Проверьте маршрут или задайте лист вручную.</p>
       <div class="grid gap-2 sm:grid-cols-2">
         <button v-for="(plan,index) in variants.slice(0,12)" :key="`${plan.cols}-${plan.rows}`" type="button" class="min-h-16 cursor-pointer rounded-md border px-3 py-3 text-left" :class="cols===plan.cols && rows===plan.rows && x===plan.sheetX && y===plan.sheetY ? 'border-accent bg-accent-soft' : 'border-line hover:bg-canvas'" :aria-pressed="cols===plan.cols && rows===plan.rows && x===plan.sheetX && y===plan.sheetY" @click="choose(plan)">
-          <span class="flex items-baseline justify-between gap-2 text-sm font-medium"><span>{{ plan.cols }} × {{ plan.rows }} · {{ plan.count }} заготовок</span><span v-if="index===0" class="text-[11px] text-accent">{{ result.limits.tech==='plotter' && productionSelection.printing!=='digital' ? 'Стандартный лист' : 'Минимальный расход' }}</span></span>
-          <span class="mt-1 block text-xs text-muted tabular-nums">{{ plan.sheetX }} × {{ plan.sheetY }} мм · {{ fmt(plan.sheetX*plan.sheetY/plan.count/1e6,3) }} м² / шт.</span>
+          <span class="flex items-baseline justify-between gap-2 text-sm font-medium"><span>{{ plan.cols }} × {{ plan.rows }} · {{ plan.count * (geo.parts ? 2 : 1) }} заготовок</span><span v-if="index===0" class="text-[11px] text-accent">{{ result.limits.tech==='plotter' && productionSelection.printing!=='digital' ? 'Стандартный лист' : 'Минимальный расход' }}</span></span>
+          <span class="mt-1 block text-xs text-muted tabular-nums">{{ plan.sheetX }} × {{ plan.sheetY }} мм · {{ fmt(plan.sheetX*plan.sheetY/plan.count/1e6,3) }} м² / {{ geo.parts ? 'пару' : 'шт.' }}</span>
         </button>
       </div>
       <p v-if="variants.length>12" class="mt-2 text-xs text-muted">Показаны 12 вариантов с наименьшим расходом. Другую сетку можно задать вручную.</p>

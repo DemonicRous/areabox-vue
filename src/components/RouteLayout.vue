@@ -11,8 +11,10 @@ const font = computed(() => pad.value * .3)
       <rect :width="sheet.sheetX" :height="sheet.sheetY" fill="var(--surface)" stroke="var(--muted)" vector-effect="non-scaling-stroke" />
       <rect v-if="inline" width="8" :height="sheet.sheetY" fill="var(--muted)" fill-opacity=".3" />
       <g v-for="index in sheet.count" :key="index" :transform="`translate(${left+((index-1)%sheet.cols)*geometry.width},${top+Math.floor((index-1)/sheet.cols)*geometry.height})`">
-        <polygon :points="geometry.points.map(point=>point.join(',')).join(' ')" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.2" vector-effect="non-scaling-stroke" />
-        <line v-for="(fold,i) in geometry.folds" :key="i" :x1="fold[0]" :y1="fold[1]" :x2="fold[2]" :y2="fold[3]" stroke="var(--ink)" stroke-opacity=".65" stroke-dasharray="5 4" vector-effect="non-scaling-stroke" />
+        <g v-for="(part,partIndex) in (geometry.parts ?? [{geometry,x:0}])" :key="partIndex" :transform="`translate(${part.x},0)`">
+          <polygon :points="part.geometry.points.map(point=>point.join(',')).join(' ')" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.2" vector-effect="non-scaling-stroke" />
+          <line v-for="(fold,i) in part.geometry.folds" :key="i" :x1="fold[0]" :y1="fold[1]" :x2="fold[2]" :y2="fold[3]" stroke="var(--ink)" stroke-opacity=".65" stroke-dasharray="5 4" vector-effect="non-scaling-stroke" />
+        </g>
       </g>
       <g stroke="var(--muted)" stroke-width="1" vector-effect="non-scaling-stroke" fill="none">
         <path :d="`M0 ${-pad*.15} V${-pad*.45} H${sheet.sheetX} V${-pad*.15}`" />

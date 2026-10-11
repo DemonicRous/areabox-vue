@@ -86,7 +86,7 @@ function confirm() {
         <RouteLayout :geometry="geo" :sheet="sheet" :left="previewLeft" :top="previewTop" :inline="technology(current.line.id) === 'inline'" />
         <dl class="grid grid-cols-2 gap-x-3 gap-y-3 text-xs sm:grid-cols-1">
           <div><dt class="text-muted">Лист, мм</dt><dd class="mt-1 text-sm font-medium tabular-nums">{{ sheet.sheetX }} × {{ sheet.sheetY }}</dd></div>
-          <div><dt class="text-muted">Одна развёртка, мм</dt><dd class="mt-1 font-medium tabular-nums">{{ geo.width }} × {{ geo.height }}</dd></div>
+          <div><dt class="text-muted">{{ geo.parts ? 'Пара L + W, мм' : 'Одна развёртка, мм' }}</dt><dd class="mt-1 font-medium tabular-nums">{{ geo.width }} × {{ geo.height }}</dd></div>
           <div><dt class="text-muted">Раскладка</dt><dd class="mt-1 font-medium">{{ sheet.cols }} × {{ sheet.rows }} · {{ sheet.count }} мест</dd></div>
           <div><dt class="text-muted">Просечка / клапан, мм</dt><dd class="mt-1 font-medium">{{ geo.slot }} / {{ geo.flap }}</dd></div>
         </dl>

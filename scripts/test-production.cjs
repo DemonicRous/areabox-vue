@@ -45,6 +45,23 @@ for (const profile of ['BF','BE','BD','BC']) {
   }
 }
 assert.equal(geometry({...box,design:'0201-2'},'flatbed','godswill-gts-3000').flap,45)
+const compoundBox={...box,lengthMm:500,widthMm:300,heightMm:250,design:'0201-4',creaseLevel:'different'}
+const quarters=geometry(compoundBox,'rotary','godswill-gts-3000')
+assert.equal(quarters.parts.length,2)
+assert.equal(quarters.count,4)
+assert.equal(quarters.parts[0].quantity,2)
+assert.equal(quarters.parts[1].quantity,2)
+assert.equal(quarters.parts[0].geometry.panels[0],503)
+assert.equal(quarters.parts[1].geometry.panels[0],303)
+assert.equal(quarters.parts[0].geometry.flap,45)
+assert.equal(quarters.parts[1].geometry.flap,45)
+assert.equal(quarters.width,quarters.parts[0].geometry.width+quarters.parts[1].geometry.width)
+assert(evaluateRoute(compoundBox,'ward','godswill-gts-3000').blocked.length===0)
+assert(evaluateRoute(compoundBox,'ward','signature-elite-135').blocked.length>0)
+const halves=geometry({...compoundBox,design:'0201-2'},'rotary','gofrotime-sdj-2000b')
+assert.equal(halves.count,2)
+assert.equal(halves.panels[0],501)
+assert.equal(halves.panels[1],303)
 assert.equal(geometry({ ...box, profile: 'BC' }, 'inline', '').slot, 10)
 assert.equal(geometry(box, 'flatbed', '').slot, 6)
 assert.equal(geometry(box, 'rotary', '').slot, 6)

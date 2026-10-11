@@ -50,4 +50,9 @@ const overlap={...box,design:'0203',creaseLevel:'different'}
 const overlapGeometry=geometry(overlap,'rotary',selection.finishing)
 assert(layoutVariants(overlap,selection,overlapGeometry).length>0,'FEFCO 203 must support die layout')
 assert(layoutVariants({...overlap,hasPrinting:true},plotter,geometry(overlap,'plotter',plotter.finishing)).length>0,'FEFCO 203 must support digital print and plotter layout')
+const four={...box,design:'0201-4',lengthMm:500,widthMm:300,heightMm:250,creaseLevel:'different'}
+const stitch={printing:'',cutting:'ward',finishing:'godswill-gts-3000'}
+const pair=geometry(four,'rotary',stitch.finishing)
+assert(layoutVariants(four,stitch,pair).length>0)
+for(const plan of layoutVariants(four,stitch,pair)) assert(plan.sheetX>=plan.cols*(pair.parts[0].geometry.width+pair.parts[1].geometry.width)+20)
 console.log('Layout variants, margins, complete route limits and manual input checks passed')

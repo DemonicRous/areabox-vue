@@ -19,7 +19,15 @@ const detailYLeft = computed(() => !slot.value?.offset || slot.value.leftIsDeepe
 const detailYRight = computed(() => !slot.value?.offset || !slot.value.leftIsDeeper ? 130 : 100)
 </script>
 <template>
-  <div class="space-y-5 p-4 sm:p-5">
+  <div v-if="geometry.parts" class="divide-y divide-line">
+    <div class="px-5 pt-5 text-xs text-muted">Комплект короба: 2 панели L + 2 панели W · соединение сшивкой</div>
+    <section v-for="part in geometry.parts" :key="part.name">
+      <h2 class="px-5 pt-5 text-sm font-semibold">{{ part.name }} · {{ part.quantity }} шт. на короб</h2>
+      <GeometryDrawing :geometry="part.geometry" :names="names" :review="review" />
+    </section>
+  </div>
+  <div v-else class="space-y-5 p-4 sm:p-5">
+    <p v-if="geometry.count===2" class="text-sm font-medium">Две одинаковые половины · 2 шт. на короб</p>
     <div class="flex flex-wrap items-center justify-between gap-3">
       <p class="min-w-0 text-xs text-muted">{{ names.join(' → ') }}</p>
       <button class="flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-3 text-xs hover:bg-canvas" type="button" :aria-pressed="zoom" @click="zoom=!zoom">
