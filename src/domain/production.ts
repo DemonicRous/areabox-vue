@@ -127,6 +127,10 @@ export function checkMachine(machine: Passport, input: BoxInput, geo: Geometry |
   }
   if (category === 'stitching' && !['0201-2', '0201-4'].includes(input.design)) result.review.push('Конструкция не подтверждена в паспорте сшивки')
   if (!geo) { result.review.push('Геометрия требует проверки'); return result }
+  const minBlankHeight = parameter(machine,'minBlankHeight')
+  if (minBlankHeight && geo.height < Number(minBlankHeight)) {
+    result.blocked.push(`Паллетизация: высота одной развёртки ${geo.height} < ${minBlankHeight} мм`)
+  }
   function range(id: string, value: number, label: string) {
     const raw = parameter(machine, id)
     if (!raw) { result.review.push(`${label}: пределы не заданы`); return }

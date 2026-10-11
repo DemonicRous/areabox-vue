@@ -235,6 +235,7 @@ export const wardTemplate: EquipmentParameterGroup[] = [
     { id: 'dieCutting', label: 'Высечка', format: 'text', value: 'Ротационная высечка' },
     { id: 'folderGluer', label: 'Фальцесклейка', format: 'text', value: 'Нет' },
     { id: 'breakWidth', label: 'Рабочая ширина разламывателя', format: 'number', unit: 'мм', value: '1600' },
+    { id: 'minBlankHeight', label: 'Минимальная высота одной развёртки для паллетизации', format: 'number', unit: 'мм', value: '300' },
     { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
   ] },
 ]
