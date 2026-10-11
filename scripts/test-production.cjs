@@ -18,6 +18,13 @@ assert.equal(geometry({...box,profile:'F'},'flatbed','').flap,30)
 assert.equal(geometry(box,'flatbed','').flap,35)
 assert.equal(geometry(box,'rotary','').flap,35)
 assert.equal(geometry({...box,profile:'E'},'rotary','').flap,30)
+for (const tech of ['rotary','plotter']) {
+  for (const profile of ['BF','BE','BD','BC']) assert.equal(geometry({...box,profile},tech,'').flap,40)
+  for (const profile of ['D','B','C']) assert.equal(geometry({...box,profile},tech,'').flap,35)
+  for (const profile of ['F','E']) assert.equal(geometry({...box,profile},tech,'').flap,30)
+  assert.equal(geometry({...box,design:'0201-2',profile:'BC'},tech,'godswill-gts-3000').flap,45)
+}
+assert.equal(geometry({...box,profile:'BC'},'flatbed','').flap,35)
 assert.equal(geometry({...box,design:'0201-2'},'flatbed','godswill-gts-3000').flap,45)
 assert.equal(geometry({ ...box, profile: 'BC' }, 'inline', '').slot, 10)
 assert.equal(geometry(box, 'flatbed', '').slot, 6)

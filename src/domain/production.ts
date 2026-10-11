@@ -30,8 +30,10 @@ export function geometry(input: BoxInput, tech: Technology, finishing: string): 
   }
   if (input.design === '0201-4') panels = [Math.max(input.lengthMm, input.widthMm) + t]
   const panelWidth = panels.reduce((sum, panel) => sum + panel, 0)
+  const fiveLayer = ['BF', 'BE', 'BD', 'BC'].includes(input.profile)
   const flap = compound || stitch ? 45 : tech === 'inline' ? (panelWidth > 1600 ? 40 : 35)
-    : (tech === 'flatbed' || tech === 'rotary') && material.drawingThicknessMm > 2 ? 35 : 30
+    : (tech === 'rotary' || tech === 'plotter') && fiveLayer ? 40
+    : material.drawingThicknessMm > 2 ? 35 : 30
   const body = input.heightMm + t
   const staggered = input.creaseLevel === 'different' && tech !== 'inline'
   const offset = staggered ? material.creaseDistanceMm : 0
