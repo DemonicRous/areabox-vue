@@ -15,7 +15,7 @@ export interface EquipmentParameterGroup {
 }
 
 export const printingCuttingCompatibility = {
-  pinlong: ['inline', 'flatbed', 'rotary', 'plotter'],
+  pinlong: ['flatbed', 'rotary', 'plotter'],
   digital: ['plotter'],
 } as const
 
@@ -46,7 +46,7 @@ export function createPrintingTemplate(name: 'Pinlong' | 'Цифровая пе�
       { id: 'printSide', label: 'Сторона печати', format: 'text' },
     ] },
     { id: 'routing', title: 'Последующая обработка', parameters: [
-      { id: 'cuttingEquipment', label: 'Оборудование для вырезки после печати', format: 'text', value: name === 'Pinlong' ? 'Любое: инлайн, плоская и ротационная высечка, плоттер' : 'Только плоттер' },
+      { id: 'cuttingEquipment', label: 'Оборудование для вырезки после печати', format: 'text', value: name === 'Pinlong' ? 'Плоская и ротационная высечка, плоттер' : 'Только плоттер' },
       { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
     ] },
   ]
@@ -72,12 +72,17 @@ export function createPrintingTemplate(name: 'Pinlong' | 'Цифровая пе�
     }
   }
   if (name === 'Pinlong') {
-    const margins: Record<string, string> = {
+    const values: Record<string, string> = {
       marginLeft: '10', marginRight: '10', marginTop: '8', marginBottom: '17',
+      sheetX: '660 / 1650',
+      sheetY: '350 / 840',
+      fluteDirection: 'X — поперёк гофры, Y — вдоль гофры',
+      workingX: String(1650 - 10 - 10),
+      workingY: String(840 - 8 - 17),
     }
     for (const group of groups) {
       for (const parameter of group.parameters) {
-        if (margins[parameter.id] !== undefined) parameter.value = margins[parameter.id]
+        if (values[parameter.id] !== undefined) parameter.value = values[parameter.id]
       }
     }
   }
