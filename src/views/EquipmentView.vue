@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
-import { asahiTemplate, eternaTemplate, createInlineTemplate, fosberTemplate, kongsbergTemplate, wardTemplate, type EquipmentParameterGroup } from '../data/equipment'
+import { asahiTemplate, eternaTemplate, createInlineTemplate, createPrintingTemplate, fosberTemplate, kongsbergTemplate, wardTemplate, type EquipmentParameterGroup } from '../data/equipment'
 interface Passport { id: string; name: string; groups: EquipmentParameterGroup[] }
 const machines: Record<string, Passport[]> = {
   corrugator: [{ id: 'fosber', name: 'Fosber', groups: fosberTemplate }],
+  printing: [
+    { id: 'pinlong', name: 'Pinlong', groups: createPrintingTemplate('Pinlong') },
+    { id: 'digital', name: 'Цифровая печать', groups: createPrintingTemplate('Цифровая печать') },
+  ],
   inline: [
     { id: 'tcy-5pa', name: 'TCY 5PA', groups: createInlineTemplate('5PA') },
     { id: 'tcy-9pa-2', name: 'TCY 9PA-2', groups: createInlineTemplate('9PA-2') },
@@ -16,6 +20,7 @@ const machines: Record<string, Passport[]> = {
 const categories = [
   { id: 'corrugator', title: 'Гофроагрегат', count: 1 },
   { id: 'inline', title: 'Инлайн', count: 2 },
+  { id: 'printing', title: 'Печать', count: 2 },
   { id: 'flatbed', title: 'Плоская высечка', count: 2 },
   { id: 'rotary', title: 'Ротационная высечка', count: 1 },
   { id: 'plotter', title: 'Плоттер', count: 1 },
@@ -46,7 +51,7 @@ function toggle(id: string) { opened.value = opened.value === id ? null : id }
       <section v-for="group in machine.groups" :key="group.id" class="border-b border-line p-4 sm:p-5" :aria-labelledby="`${machine.id}-${group.id}`">
         <h4 :id="`${machine.id}-${group.id}`" class="mb-4 text-sm font-semibold">{{ group.title }}</h4>
         <dl class="space-y-4">
-          <div v-for="parameter in group.parameters" :key="parameter.id" class="grid items-baseline gap-x-4 gap-y-1 text-sm" :class="['profiles', 'designs', 'fluteDirection'].includes(parameter.id) ? 'grid-cols-1' : ['printSide', 'dieCutting'].includes(parameter.id) ? 'grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]'">
+          <div v-for="parameter in group.parameters" :key="parameter.id" class="grid items-baseline gap-x-4 gap-y-1 text-sm" :class="['profiles', 'designs', 'fluteDirection', 'cuttingEquipment'].includes(parameter.id) ? 'grid-cols-1' : ['printSide', 'dieCutting'].includes(parameter.id) ? 'grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]'">
             <dt class="text-muted">{{ parameter.label }}<span v-if="parameter.unit" class="ml-1 text-xs">({{ parameter.unit }})</span><span v-if="parameter.format === 'range'" class="mt-1 block text-xs">мин. / макс.</span></dt>
             <dd class="font-medium tabular-nums" :aria-label="parameter.value ? undefined : 'Не задано'">{{ parameter.value ?? (parameter.format === 'range' ? '— / —' : '—') }}</dd>
           </div>

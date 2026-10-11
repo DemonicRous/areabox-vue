@@ -14,6 +14,36 @@ export interface EquipmentParameterGroup {
   parameters: EquipmentParameter[]
 }
 
+export const printingCuttingCompatibility = {
+  pinlong: ['inline', 'flatbed', 'rotary', 'plotter'],
+  digital: ['plotter'],
+} as const
+
+export function createPrintingTemplate(name: 'Pinlong' | 'Цифровая печать'): EquipmentParameterGroup[] {
+  return [
+    { id: 'general', title: 'Общие сведения', parameters: [
+      { id: 'name', label: 'Название', format: 'text', value: name },
+      { id: 'model', label: 'Модель', format: 'text' },
+      { id: 'profiles', label: 'Доступные профили картона', format: 'text' },
+    ] },
+    { id: 'feed', title: 'Формат подачи', parameters: [
+      { id: 'sheetX', label: 'Заготовка · X', format: 'range', unit: 'мм' },
+      { id: 'sheetY', label: 'Заготовка · Y', format: 'range', unit: 'мм' },
+      { id: 'fluteDirection', label: 'Направление гофры относительно X / Y', format: 'text' },
+    ] },
+    { id: 'printing', title: 'Параметры печати', parameters: [
+      { id: 'printColors', label: 'Количество цветов печати', format: 'number' },
+      { id: 'printSide', label: 'Сторона печати', format: 'text' },
+      { id: 'workingX', label: 'Поле печати · X', format: 'number', unit: 'мм' },
+      { id: 'workingY', label: 'Поле печати · Y', format: 'number', unit: 'мм' },
+    ] },
+    { id: 'routing', title: 'Последующая обработка', parameters: [
+      { id: 'cuttingEquipment', label: 'Оборудование для вырезки после печати', format: 'text', value: name === 'Pinlong' ? 'Любое: инлайн, плоская и ротационная высечка, плоттер' : 'Только плоттер' },
+      { id: 'specialModes', label: 'Особые режимы и ограничения', format: 'text' },
+    ] },
+  ]
+}
+
 export const asahiTemplate: EquipmentParameterGroup[] = [
   { id: 'general', title: 'Общие сведения', parameters: [
     { id: 'name', label: 'Название', format: 'text', value: 'Asahi' },
