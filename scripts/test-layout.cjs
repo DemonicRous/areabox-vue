@@ -26,6 +26,11 @@ const plotter={printing:'digital',cutting:'kongsberg',finishing:'manual-gluing'}
 assert.equal(layoutLimits(plotter).left,50)
 assert.equal(layoutLimits(plotter).top,50)
 assert(layoutVariants(digital,plotter,geometry(digital,'plotter',plotter.finishing)).length>0)
+const standardPlotter=layoutVariants(digital,plotter,geometry(digital,'plotter',plotter.finishing))
+assert.equal(standardPlotter.length,1)
+assert.equal(standardPlotter[0].sheetX,2500)
+assert.equal(standardPlotter[0].sheetY,1600)
+assert.equal(standardPlotter[0].sheetX*standardPlotter[0].sheetY/1e6,4)
 const inline={printing:'',cutting:'tcy-5pa',finishing:''}
 const inlineGeo=geometry(box,'inline','')
 const inlineVariants=layoutVariants(box,inline,inlineGeo)

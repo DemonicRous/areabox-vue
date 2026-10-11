@@ -46,6 +46,10 @@ export function layoutVariants(input: BoxInput, selection: RouteSelection, geo: 
   const cols = limits.tech==='inline' ? 1 : Math.min(100,Math.floor(Math.min(limits.maxX-limits.left-limits.right,limits.workingX)/geo.width))
   const rows = limits.tech==='inline' ? 1 : Math.min(100,Math.floor(Math.min(limits.maxY-limits.top-limits.bottom,limits.workingY)/geo.height))
   const variants: SheetPlan[] = []
+  if (limits.tech==='plotter') {
+    const result = evaluateLayout(input,selection,geo,cols,rows,2500,1600)
+    return result.errors.length ? [] : [result.plan]
+  }
   for(let c=1;c<=cols;c++) for(let r=1;r<=rows;r++) {
     const result = evaluateLayout(input,selection,geo,c,r)
     if (!result.errors.length) variants.push(result.plan)
