@@ -18,9 +18,9 @@ const formatMm = (value: number) => `${value.toLocaleString('ru-RU')} мм`
 const profileOptions = cardboardProfiles.map(profile => ({ value: profile.id, label: profile.id, cells: [formatMm(profile.actualThicknessMm), formatMm(profile.drawingThicknessMm)] }))
 const designOptions = designs.map(design => ({ value: design.id, label: design.id.startsWith('grid') ? design.title.split(' · ')[0]! : `FEFCO ${Number(design.id.split('-')[0])}`, description: design.title.split(' · ')[1] }))
 const draft = useBoxDraft()
-const availableCreaseOptions = computed(() => draft.design === '0203' ? creaseOptions.filter(option=>option.value==='different') : creaseOptions)
+const availableCreaseOptions = computed(() => draft.design.startsWith('0203') ? creaseOptions.filter(option=>option.value==='different') : creaseOptions)
 watch(() => draft.design, design => {
-  if (design === '0203') draft.creaseLevel = 'different'
+  if (design.startsWith('0203')) draft.creaseLevel = 'different'
   if (design === 'grid') draft.hasPrinting = false
 }, { immediate: true, flush: 'sync' })
 const dimensions = [
@@ -61,7 +61,7 @@ const errors = computed(() => {
       </div>
       <CatalogSelect v-if="draft.design!=='grid'" v-model="draft.profile" :label="draft.design==='grid-0201' ? 'Профиль короба' : 'Профиль картона'" :options="profileOptions" :columns="['Фактическая', 'Чертёжная']" />
       <CatalogSelect v-if="draft.design!=='grid'" v-model="draft.creaseLevel" label="Расположение биговок" :options="availableCreaseOptions" />
-      <p v-if="draft.design==='0203'" class="text-[11px] text-muted">FEFCO 203: биговки на разных уровнях; вырезка на высечке или плоттере.</p>
+      <p v-if="draft.design.startsWith('0203')" class="text-[11px] text-muted">FEFCO 203: биговки на разных уровнях; вырезка на высечке или плоттере.</p>
       <div v-if="draft.design!=='grid'" class="space-y-4 border-t border-line pt-4">
         <label class="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-medium">
           <input v-model="draft.hasPrinting" type="checkbox" class="size-4 shrink-0 accent-accent" aria-controls="box-printing" />

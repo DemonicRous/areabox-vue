@@ -35,7 +35,7 @@ export function evaluateLayout(input: BoxInput, selection: RouteSelection, geo: 
   if (!errors.length) for (const id of ids) {
     const machine = findMachine(id)!
     const category = Object.keys(machines).find(key=>machines[key]!.some(item=>item.id===id))!
-    const feedGeometry = input.design==='0201-4' && category==='stitching' ? geometry(input,technology(selection.cutting),selection.finishing) : geo
+    const feedGeometry = ['0201-4','0203-4'].includes(input.design) && category==='stitching' ? geometry(input,technology(selection.cutting),selection.finishing) : geo
     const check = checkMachine(machine,input,feedGeometry,category,plan)
     errors.push(...check.blocked.map(reason=>`${machine.name}: ${reason}`))
     review.push(...check.review.map(reason=>`${machine.name}: ${reason}`))

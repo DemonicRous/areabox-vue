@@ -19,19 +19,19 @@ export function technology(id: string): Technology {
 }
 export function geometry(input: BoxInput, tech: Technology, finishing: string, part?: 'L' | 'W'): Geometry | null {
   if (![input.lengthMm, input.widthMm, input.heightMm].every(value => Number.isFinite(value) && value > 0) || input.widthMm > input.lengthMm) return null
-  if (input.design === '0201-4' && !part) {
+  if (['0201-4','0203-4'].includes(input.design) && !part) {
     const l=geometry(input,tech,finishing,'L')!, w=geometry(input,tech,finishing,'W')!
     return { ...l, width:l.width+w.width, height:Math.max(l.height,w.height), count:4,
       parts:[{name:'Панель L',quantity:2,geometry:l,x:0},{name:'Панель W',quantity:2,geometry:w,x:l.width}] }
   }
   const material = cardboardProfiles.find(profile => profile.id === input.profile)!
   const t = material.drawingThicknessMm, half = Math.floor(t / 2)
-  const compound = input.design === '0201-2' || input.design === '0201-4'
+  const compound = ['0201-2','0203-2'].includes(input.design) || ['0201-4','0203-4'].includes(input.design)
   const stitch = finishing.startsWith('godswill') || finishing.startsWith('gofrotime')
   const slot = tech === 'inline' ? (['BF', 'BE', 'BD', 'BC'].includes(input.profile) ? 10 : 8) : 6
   let panels = [input.widthMm + half, input.lengthMm + t, input.widthMm + t, input.lengthMm + half]
   let firstIsLength = false
-  if (input.design === '0201-2') {
+  if (['0201-2','0203-2'].includes(input.design)) {
     firstIsLength = finishing.startsWith('gofrotime')
     panels = firstIsLength ? [input.lengthMm + half, input.widthMm + t] : [input.widthMm + t, input.lengthMm + half]
   }
@@ -42,7 +42,7 @@ export function geometry(input: BoxInput, tech: Technology, finishing: string, p
     : (tech === 'rotary' || tech === 'plotter') && fiveLayer ? 40
     : material.drawingThicknessMm > 2 ? 35 : 30
   const body = input.heightMm + t
-  const overlap = input.design === '0203'
+  const overlap = input.design.startsWith('0203')
   const staggered = input.creaseLevel === 'different' && tech !== 'inline'
   const offset = staggered ? material.creaseDistanceMm : 0
   const bottom = Math.floor((input.widthMm + t) / 2) + offset
@@ -61,7 +61,7 @@ export function geometry(input: BoxInput, tech: Technology, finishing: string, p
     return [top === 0 ? 0 : top - shift, top + body + shift]
   })
   const edges = panels.map((_, index) => {
-    const isLength = index % 2 === 1
+    const isLength = index % 2 === 0 ? firstIsLength : !firstIsLength
     return overlap && !isLength ? [levels[index]![0]! - top, levels[index]![1]! + bottom] : [0,height]
   })
   const points: number[][] = [[0, levels[0]![0]! + 10], [flap, levels[0]![0]!]]
@@ -86,7 +86,7 @@ export function geometry(input: BoxInput, tech: Technology, finishing: string, p
     lines.push([x+(index ? slot/2 : 0),y2!,end-(index<panels.length-1 ? slot/2 : 0),y2!])
     return lines
   })
-  return { width, height, slot, flap, body, panels, points, folds, panelEdges: edges, count: input.design === '0201-2' ? 2 : 1 }
+  return { width, height, slot, flap, body, panels, points, folds, panelEdges: edges, count: ['0201-2','0203-2'].includes(input.design) ? 2 : 1 }
 }
 
 export interface Check { blocked: string[]; review: string[] }
@@ -112,7 +112,7 @@ export interface ProductionRoute extends Check {
 }
 export function finishingLines(input: BoxInput, cutting: string): Passport[] {
   if (technology(cutting) === 'inline') return []
-  if (['0201-2', '0201-4'].includes(input.design)) return machines.stitching!
+  if (['0201-2', '0201-4', '0203-2', '0203-4'].includes(input.design)) return machines.stitching!
   return [...machines.folderGluer!, ...(technology(cutting) === 'plotter' ? machines.manualGluer! : [])]
 }
 export function evaluateRoute(input: BoxInput, cutting: string, finishing: string): ProductionRoute {
@@ -136,7 +136,7 @@ export function evaluateRoute(input: BoxInput, cutting: string, finishing: strin
   return { selection: { printing, cutting, finishing }, line, names: chain.map(machine => machine.name), geometry: geo, sheet:partSheets ? null : sheet, partSheets, blocked: [...new Set(blocked)], review: [...new Set(checks.flatMap(check => check.review))] }
 }
 export function productionRoutes(input: BoxInput): ProductionRoute[] {
-  const compound = ['0201-2', '0201-4'].includes(input.design)
+  const compound = ['0201-2', '0201-4', '0203-2', '0203-4'].includes(input.design)
   const lines = input.hasPrinting && input.printType === 'digital' ? [...machines.flatbed!, ...machines.rotary!, ...machines.plotter!]
     : input.hasPrinting && input.printType === 'flexo' ? [...(compound ? [] : machines.inline!), ...machines.flatbed!, ...machines.rotary!]
     : [...(!input.hasPrinting && !compound ? machines.inline! : []), ...machines.flatbed!, ...machines.rotary!, ...machines.plotter!]
@@ -195,7 +195,7 @@ export function checkMachine(machine: Passport, input: BoxInput, geo: Geometry |
   if (input.hasPrinting && (!Number.isInteger(input.printColors) || input.printColors < 1)) {
     result.blocked.push('Укажите положительное целое количество цветов'); return result
   }
-  if (input.design === '0203' && input.creaseLevel !== 'different') result.blocked.push('FEFCO 203: выберите биговки на разных уровнях')
+  if (input.design.startsWith('0203') && input.creaseLevel !== 'different') result.blocked.push('FEFCO 203: выберите биговки на разных уровнях')
   if (category === 'manualGluer') {
     if (!geo) result.review.push('Геометрия требует проверки')
     return result
@@ -208,8 +208,8 @@ export function checkMachine(machine: Passport, input: BoxInput, geo: Geometry |
     if (input.creaseLevel !== 'same') result.blocked.push('Биговки должны быть на одной высоте')
     if (!['0200', '0201', 'grid-0201'].includes(input.design)) result.blocked.push('Конструкция недоступна на инлайне')
   }
-  if (category === 'stitching' && !['0201-2', '0201-4'].includes(input.design)) result.blocked.push('Сшивка доступна только для коробок из половинок')
-  if (category === 'stitching' && input.design === '0201-4') result.review.push('Подача на сшивку проверена по паре L + W; последовательность сборки четырёх панелей требует подтверждения')
+  if (category === 'stitching' && !['0201-2', '0201-4', '0203-2', '0203-4'].includes(input.design)) result.blocked.push('Сшивка доступна только для коробок из половинок')
+  if (category === 'stitching' && ['0201-4','0203-4'].includes(input.design)) result.review.push('Подача на сшивку проверена по паре L + W; последовательность сборки четырёх панелей требует подтверждения')
   if (!geo) { result.review.push('Геометрия требует проверки'); return result }
   const minBlankHeight = parameter(machine,'minBlankHeight')
   if (minBlankHeight && geo.height < Number(minBlankHeight)) {

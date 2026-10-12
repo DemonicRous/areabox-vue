@@ -128,3 +128,21 @@ assert(productionRoutes({...box,hasPrinting:true,printType:'pinlong'}).every(rou
 assert(productionRoutes(box).some(route=>route.line.id==='ward' && route.sheet.count===3 && !route.blocked.length))
 assert(productionRoutes({...box,widthMm:400}).every(route=>route.blocked.length))
 console.log('Production geometry, complete routes and equipment checks passed')
+
+for(const tech of ['flatbed','rotary','plotter']){
+ const input={...fullOverlapBox,design:'0203-2'}
+ for(const finishing of ['godswill-gts-3000','gofrotime-sdj-2000b']){
+  const halves=geometry(input,tech,finishing),measure=drawingMeasurements(halves)
+  assert.equal(halves.count,2);assert.equal(halves.panels.length,2);assert.equal(halves.flap,45)
+  const lengthIndex=finishing.startsWith('gofrotime')?0:1
+  assert.equal(measure.panels[lengthIndex].top,input.widthMm);assert.equal(measure.panels[lengthIndex].bottom,input.widthMm)
+  assert(halves.points.every(([x,y])=>x>=0&&x<=halves.width&&y>=0&&y<=halves.height))
+ }
+ const quarters=geometry({...input,design:'0203-4'},tech,'godswill-gts-3000')
+ assert.equal(quarters.count,4);assert.equal(quarters.parts.length,2)
+ assert.equal(drawingMeasurements(quarters.parts[0].geometry).panels[0].top,input.widthMm)
+ assert(quarters.parts.every(part=>part.quantity===2&&part.geometry.panels.length===1))
+ assert(evaluateRoute({...input,design:'0203-4'},'kongsberg','godswill-gts-3000').partSheets.length===2)
+ assert(evaluateRoute({...input,creaseLevel:'same'},'ward','godswill-gts-3000').blocked.some(reason=>reason.includes('разных уровнях')))
+}
+console.log('FEFCO 203 halves/quarters retain overlap flap geometry in both feed orders and separate L/W layouts')
